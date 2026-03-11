@@ -1,1 +1,0 @@
-# App-Quitanda.com
