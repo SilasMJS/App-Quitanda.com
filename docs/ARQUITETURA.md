@@ -10,7 +10,6 @@ O projeto utiliza tecnologias modernas para garantir performance e facilidade de
 - **UI Components**: Componentes customizados com suporte a Dark/Light Mode.
 
 ## Bibliotecas Principais
-- `expo-router`: Gerenciamento de rotas.
-- `@react-navigation/drawer`: Menu lateral deslizante.
-- `react-native-reanimated`: Animações fluidas.
+- `expo-router`: Gerenciamento de rotas e navegação em pilha (Stack).
+- `react-native-reanimated`: Animações fluidas e personalizadas.
 - `react-native-gesture-handler`: Suporte a gestos nativos.

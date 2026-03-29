@@ -63,6 +63,7 @@ Para mais informações sobre o funcionamento interno e arquitetura, consulte a 
 ### 📱 Documentação das Telas
 - [Tela de Login](docs/TELA_LOGIN.md)
 - [Painel de Controle (Dashboard)](docs/TELA_DASHBOARD.md)
+- [Gerenciamento de Reservas](docs/TELA_RESERVAS.md)
 - [Gerenciamento de Estoque (Produtos)](docs/TELA_PRODUTOS.md)
 - [Vitrine Social (Postagens)](docs/TELA_POSTAGENS.md)
 - [Financeiro (Pagamentos)](docs/TELA_PAGAMENTOS.md)
