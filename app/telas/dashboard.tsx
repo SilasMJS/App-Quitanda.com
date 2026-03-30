@@ -1,15 +1,41 @@
-import React from 'react';
-import { StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, TouchableOpacity, SafeAreaView, ActivityIndicator, Alert } from 'react-native';
 import { Image } from 'expo-image';
 import { Text, View } from '@/components/Themed';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import authService from '../../services/auth';
+import comunidadesService from '../../services/comunidades';
 
 /**
  * DashboardScreen - Tela Inicial reformulada conforme referência do Figma.
  */
 export default function DashboardScreen() {
   const router = useRouter();
+  const [userName, setUserName] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [user, comunidades] = await Promise.all([
+          authService.getCurrentUser(),
+          comunidadesService.listarTodas()
+        ]);
+        setUserName(user.nome);
+        console.log('COMUNIDADES CARREGADAS COM SUCESSO:', comunidades.length);
+      } catch (error) {
+        console.error('Erro ao carregar dados do dashboard:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  const handleLogout = async () => {
+    await authService.logout();
+    router.replace('/');
+  };
 
   const menuItems = [
     { label: 'POSTAGEM', route: '/telas/postagens', badge: null },
@@ -18,6 +44,14 @@ export default function DashboardScreen() {
     { label: 'PAGAMENTOS', route: '/telas/pagamentos', badge: 1 },
   ];
 
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#2E7D32" />
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
@@ -25,7 +59,7 @@ export default function DashboardScreen() {
         <View style={styles.header}>
           <View style={styles.userInfo}>
             <View style={styles.avatarCircle} />
-            <Text style={styles.userName}>Olá, Silas</Text>
+            <Text style={styles.userName}>Olá, {userName || 'Vendedor'}</Text>
           </View>
         </View>
 
@@ -60,7 +94,16 @@ export default function DashboardScreen() {
         {/* Botão Sair */}
         <TouchableOpacity 
           style={styles.logoutButton}
-          onPress={() => router.replace('/')}
+          onPress={() => {
+            Alert.alert(
+              'Sair',
+              'Deseja realmente sair da sua conta?',
+              [
+                { text: 'Cancelar', style: 'cancel' },
+                { text: 'Sair', style: 'destructive', onPress: handleLogout }
+              ]
+            );
+          }}
         >
           <Text style={styles.logoutButtonText}>SAIR</Text>
         </TouchableOpacity>

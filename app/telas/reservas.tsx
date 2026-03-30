@@ -1,81 +1,117 @@
-import React, { useState } from 'react';
-import { StyleSheet, FlatList, TouchableOpacity, Modal, ScrollView, SafeAreaView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, FlatList, TouchableOpacity, Modal, SafeAreaView, ActivityIndicator, Alert } from 'react-native';
 import { Image } from 'expo-image';
-import { Text, View } from '@/components/Themed';
+import { Text, View } from '../../components/Themed';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-
-// Dados mockados conforme o estilo da imagem
-const RESERVAS = [
-  { 
-    id: '1', 
-    numero: '#1',
-    nome: 'Silas Malaquias', 
-    itens: '2x Alface roxo\n1x Cheiro Verde',
-    total: 'R$ 6,00 Em dinheiro',
-  },
-  { 
-    id: '2', 
-    numero: '#2',
-    nome: 'Maria Julia', 
-    itens: '1x Mel Orgânico\n2x Ovos Caipira',
-    total: 'R$ 45,00 Em dinheiro',
-  },
-];
+import reservasService, { Pedido } from '../../services/reservas';
 
 export default function ReservasScreen() {
   const router = useRouter();
+  const [reservas, setReservas] = useState<Pedido[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [processando, setProcessando] = useState(false);
+  
   const [modalConfirmarVisible, setModalConfirmarVisible] = useState(false);
   const [modalRecusarVisible, setModalRecusarVisible] = useState(false);
-  const [reservaSelecionada, setReservaSelecionada] = useState<any>(null);
+  const [reservaSelecionada, setReservaSelecionada] = useState<Pedido | null>(null);
+  const [motivoRecusa, setMotivoRecusa] = useState('Item esgotado');
 
-  const handleConfirmar = (reserva: any) => {
-    setReservaSelecionada(reserva);
-    setModalConfirmarVisible(true);
+  useEffect(() => {
+    carregarReservas();
+  }, []);
+
+  const carregarReservas = async () => {
+    setLoading(true);
+    try {
+      const dados = await reservasService.listarRecebidos();
+      setReservas(dados);
+    } catch (error) {
+      console.error('Erro ao carregar reservas:', error);
+      // Fallback para não travar a tela em caso de erro na API
+      setReservas([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleRecusar = (reserva: any) => {
-    setReservaSelecionada(reserva);
-    setModalRecusarVisible(true);
+  const handleConfirmarAcao = async () => {
+    if (!reservaSelecionada) return;
+    
+    setProcessando(true);
+    try {
+      await reservasService.aprovar(reservaSelecionada.id);
+      Alert.alert('Sucesso', 'Reserva confirmada com sucesso!');
+      setModalConfirmarVisible(false);
+      carregarReservas();
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível confirmar a reserva.');
+    } finally {
+      setProcessando(false);
+    }
   };
 
-  const renderReserva = ({ item }: { item: any }) => (
+  const handleRecusarAcao = async () => {
+    if (!reservaSelecionada) return;
+
+    setProcessando(true);
+    try {
+      await reservasService.recusar(reservaSelecionada.id, motivoRecusa);
+      Alert.alert('Sucesso', 'Reserva recusada.');
+      setModalRecusarVisible(false);
+      carregarReservas();
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível recusar a reserva.');
+    } finally {
+      setProcessando(false);
+    }
+  };
+
+  const renderReserva = ({ item }: { item: Pedido }) => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <Text style={styles.reservaNumero}>RESERVA {item.numero}</Text>
+        <Text style={styles.reservaNumero}>ID: #{item.id.substring(0, 8)}</Text>
+        <View style={[styles.statusBadge, { backgroundColor: item.status === 'PENDENTE' ? '#FFB300' : '#40C993' }]}>
+          <Text style={styles.statusText}>{item.status}</Text>
+        </View>
       </View>
       
       <View style={styles.cardBody}>
-        <Text style={styles.clienteNome}>{item.nome}</Text>
-        <Text style={styles.itensList}>{item.itens}</Text>
-        <Text style={styles.totalText}>{item.total}</Text>
+        <Text style={styles.clienteNome}>{item.cliente_nome || 'Cliente da Quitanda'}</Text>
+        {item.itens.map((i, index) => (
+          <Text key={index} style={styles.itensList}>
+            {i.quantidade}x {i.produto_nome || 'Produto'}
+          </Text>
+        ))}
+        <Text style={styles.totalText}>R$ {item.valor_total.toFixed(2)}</Text>
       </View>
 
-      <View style={styles.cardActions}>
-        <TouchableOpacity 
-          style={styles.btnConfirmar}
-          onPress={() => handleConfirmar(item)}
-        >
-          <Text style={styles.btnText}>CONFIRMAR</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.btnRecusar}
-          onPress={() => handleRecusar(item)}
-        >
-          <Text style={styles.btnText}>RECUSAR</Text>
-        </TouchableOpacity>
-      </View>
+      {item.status === 'PENDENTE' && (
+        <View style={styles.cardActions}>
+          <TouchableOpacity 
+            style={styles.btnConfirmar}
+            onPress={() => { setReservaSelecionada(item); setModalConfirmarVisible(true); }}
+          >
+            <Text style={styles.btnText}>CONFIRMAR</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.btnRecusar}
+            onPress={() => { setReservaSelecionada(item); setModalRecusarVisible(true); }}
+          >
+            <Text style={styles.btnText}>RECUSAR</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        {/* Header com Logo e Botão Voltar */}
         <View style={styles.header}>
           <View style={styles.logoRow}>
             <Image
-              source={require('@/assets/images/Group 2.svg')}
+              source={require('../../assets/images/Group 2.svg')}
               style={{ width: 35, height: 35 }}
               contentFit="contain"
             />
@@ -90,71 +126,70 @@ export default function ReservasScreen() {
           </TouchableOpacity>
         </View>
 
-        <FlatList
-          data={RESERVAS}
-          renderItem={renderReserva}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
-          showsVerticalScrollIndicator={false}
-        />
+        <Text style={styles.title}>Minhas Reservas</Text>
+
+        {loading ? (
+          <ActivityIndicator size="large" color="#2E7D32" style={{ marginTop: 50 }} />
+        ) : (
+          <FlatList
+            data={reservas}
+            renderItem={renderReserva}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.list}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              <View style={{ alignItems: 'center', marginTop: 50 }}>
+                <Text style={{ color: '#999' }}>Nenhuma reserva pendente.</Text>
+              </View>
+            }
+            onRefresh={carregarReservas}
+            refreshing={loading}
+          />
+        )}
 
         {/* Modal CONFIRMAR RESERVA */}
-        <Modal
-          animationType="fade"
-          transparent={true}
-          visible={modalConfirmarVisible}
-        >
+        <Modal animationType="fade" transparent={true} visible={modalConfirmarVisible}>
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>CONFIRMAR RESERVA</Text>
-              <Text style={styles.modalSubtitle}>A reserva {reservaSelecionada?.numero} será confirmada</Text>
+              <Text style={styles.modalSubtitle}>Deseja confirmar este pedido?</Text>
               
               <TouchableOpacity 
-                style={styles.btnModalAcao}
-                onPress={() => setModalConfirmarVisible(false)}
+                style={[styles.btnModalAcao, processando && { opacity: 0.7 }]}
+                onPress={handleConfirmarAcao}
+                disabled={processando}
               >
-                <Text style={styles.btnModalText}>SIM</Text>
+                {processando ? <ActivityIndicator color="#FFF" /> : <Text style={styles.btnModalText}>SIM, CONFIRMAR</Text>}
               </TouchableOpacity>
 
-              <TouchableOpacity 
-                style={styles.btnModalVoltar}
-                onPress={() => setModalConfirmarVisible(false)}
-              >
-                <Ionicons name="arrow-back-circle-outline" size={18} color="#FFF" />
-                <Text style={styles.btnModalVoltarText}>VOLTAR</Text>
+              <TouchableOpacity style={styles.btnModalVoltar} onPress={() => setModalConfirmarVisible(false)}>
+                <Text style={styles.btnModalVoltarText}>CANCELAR</Text>
               </TouchableOpacity>
             </View>
           </View>
         </Modal>
 
         {/* Modal MOTIVO DE RECUSA */}
-        <Modal
-          animationType="fade"
-          transparent={true}
-          visible={modalRecusarVisible}
-        >
+        <Modal animationType="fade" transparent={true} visible={modalRecusarVisible}>
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>MOTIVO DE RECUSA</Text>
-              <Text style={styles.modalSubtitle}>Selecione o motivo do cancelamento do pedido</Text>
+              <Text style={styles.modalSubtitle}>Selecione o motivo do cancelamento</Text>
               
-              <View style={styles.dropdown}>
-                <Text style={styles.dropdownText}>Item esgotado</Text>
+              <TouchableOpacity style={styles.dropdown} onPress={() => Alert.alert('Motivos', 'Item esgotado\nEndereço fora da área\nOutros')}>
+                <Text style={styles.dropdownText}>{motivoRecusa}</Text>
                 <Ionicons name="caret-down" size={16} color="#FFF" />
-              </View>
-
-              <TouchableOpacity 
-                style={styles.btnModalAcao}
-                onPress={() => setModalRecusarVisible(false)}
-              >
-                <Text style={styles.btnModalText}>CONTINUAR</Text>
               </TouchableOpacity>
 
               <TouchableOpacity 
-                style={styles.btnModalVoltar}
-                onPress={() => setModalRecusarVisible(false)}
+                style={[styles.btnModalAcao, { backgroundColor: '#C62828' }, processando && { opacity: 0.7 }]}
+                onPress={handleRecusarAcao}
+                disabled={processando}
               >
-                <Ionicons name="arrow-back-circle-outline" size={18} color="#FFF" />
+                {processando ? <ActivityIndicator color="#FFF" /> : <Text style={styles.btnModalText}>CONFIRMAR RECUSA</Text>}
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.btnModalVoltar} onPress={() => setModalRecusarVisible(false)}>
                 <Text style={styles.btnModalVoltarText}>VOLTAR</Text>
               </TouchableOpacity>
             </View>
@@ -172,125 +207,36 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 20,
     backgroundColor: 'transparent',
   },
-  logoRow: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    backgroundColor: 'transparent',
-  },
+  logoRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'transparent' },
   logoText: { fontSize: 18, fontWeight: '900', color: '#2E7D32', marginLeft: -2 },
-  btnVoltar: {
-    backgroundColor: '#0A4D2E',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
+  btnVoltar: { backgroundColor: '#0A4D2E', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
   btnVoltarText: { color: '#FFF', fontSize: 12, fontWeight: '700', marginLeft: 5 },
-  title: {
-    fontSize: 28,
-    fontWeight: '900',
-    textAlign: 'center',
-    color: '#333',
-    marginBottom: 20,
-  },
+  title: { fontSize: 24, fontWeight: '900', color: '#333', marginBottom: 20, textAlign: 'center' },
   list: { paddingBottom: 20 },
-  card: {
-    backgroundColor: '#008966',
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 20,
-  },
-  cardHeader: {
-    alignItems: 'flex-end',
-    marginBottom: 10,
-    backgroundColor: 'transparent',
-  },
+  card: { backgroundColor: '#008966', borderRadius: 12, padding: 15, marginBottom: 20 },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, backgroundColor: 'transparent' },
   reservaNumero: { color: '#FFF', fontSize: 12, fontWeight: '700' },
+  statusBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
+  statusText: { color: '#FFF', fontSize: 10, fontWeight: 'bold' },
   cardBody: { backgroundColor: 'transparent', marginBottom: 15 },
-  clienteNome: { color: '#FFF', fontSize: 20, fontWeight: '900', marginBottom: 10 },
-  itensList: { color: '#FFF', fontSize: 14, fontWeight: '500', lineHeight: 20, marginBottom: 15 },
-  totalText: { color: '#FFF', fontSize: 16, fontWeight: '900', textAlign: 'center' },
-  cardActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: 'transparent',
-  },
-  btnConfirmar: {
-    backgroundColor: '#40C993',
-    width: '48%',
-    paddingVertical: 10,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  btnRecusar: {
-    backgroundColor: '#C62828',
-    width: '48%',
-    paddingVertical: 10,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  btnText: { color: '#FFF', fontSize: 14, fontWeight: '900' },
-  // Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: '#008966',
-    width: '100%',
-    borderRadius: 15,
-    padding: 25,
-    alignItems: 'center',
-  },
-  modalTitle: {
-    color: '#FFF',
-    fontSize: 22,
-    fontWeight: '900',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  modalSubtitle: {
-    color: '#FFF',
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 30,
-    lineHeight: 20,
-  },
-  dropdown: {
-    width: '100%',
-    backgroundColor: '#000',
-    height: 50,
-    borderRadius: 8,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 15,
-    marginBottom: 30,
-  },
+  clienteNome: { color: '#FFF', fontSize: 18, fontWeight: '900', marginBottom: 10 },
+  itensList: { color: '#FFF', fontSize: 14, fontWeight: '500', marginBottom: 4 },
+  totalText: { color: '#FFF', fontSize: 16, fontWeight: '900', marginTop: 10, textAlign: 'right' },
+  cardActions: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: 'transparent' },
+  btnConfirmar: { backgroundColor: '#40C993', width: '48%', paddingVertical: 10, borderRadius: 6, alignItems: 'center' },
+  btnRecusar: { backgroundColor: '#C62828', width: '48%', paddingVertical: 10, borderRadius: 6, alignItems: 'center' },
+  btnText: { color: '#FFF', fontSize: 12, fontWeight: '900' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  modalContent: { backgroundColor: '#008966', width: '100%', borderRadius: 15, padding: 25, alignItems: 'center' },
+  modalTitle: { color: '#FFF', fontSize: 20, fontWeight: '900', marginBottom: 15 },
+  modalSubtitle: { color: '#FFF', fontSize: 14, textAlign: 'center', marginBottom: 30 },
+  dropdown: { width: '100%', backgroundColor: '#0A4D2E', height: 50, borderRadius: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 15, marginBottom: 30 },
   dropdownText: { color: '#FFF', fontSize: 16 },
-  btnModalAcao: {
-    backgroundColor: '#40C993',
-    width: '80%',
-    paddingVertical: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  btnModalText: { color: '#FFF', fontSize: 18, fontWeight: '900' },
-  btnModalVoltar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#0A4D2E',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 6,
-  },
-  btnModalVoltarText: { color: '#FFF', fontSize: 14, fontWeight: '700', marginLeft: 5 },
+  btnModalAcao: { backgroundColor: '#40C993', width: '100%', paddingVertical: 15, borderRadius: 8, alignItems: 'center', marginBottom: 15 },
+  btnModalText: { color: '#FFF', fontSize: 16, fontWeight: '900' },
+  btnModalVoltar: { paddingVertical: 8 },
+  btnModalVoltarText: { color: '#FFF', fontSize: 14, fontWeight: '700', opacity: 0.8 },
 });

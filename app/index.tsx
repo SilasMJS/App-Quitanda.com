@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TextInput, Alert, Dimensions } from 'react-native';
+import { StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TextInput, Alert, Dimensions, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Text, View } from '@/components/Themed';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image'; // Usando expo-image para suportar SVG nativamente
+import { Image } from 'expo-image'; 
+import authService from '../services/auth';
 
 const { height } = Dimensions.get('window');
 
@@ -15,6 +16,7 @@ export default function LoginScreen() {
   const router = useRouter(); 
   const [celular, setCelular] = useState(''); 
   const [senha, setSenha] = useState(''); 
+  const [loading, setLoading] = useState(false);
 
   /**
    * formatarCelular - Aplica máscara (XX) XXXXX-XXXX
@@ -38,15 +40,29 @@ export default function LoginScreen() {
     setCelular(formatarCelular(text));
   };
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     const celularLimpo = celular.replace(/\D/g, '');
-    const CELULAR_CORRETO = '11999999999';
-    const SENHA_CORRETA = 'admin123';
+    
+    if (celularLimpo.length < 10) {
+      Alert.alert('Erro', 'Por favor, informe um número de celular válido.');
+      return;
+    }
 
-    if (celularLimpo === CELULAR_CORRETO && senha === SENHA_CORRETA) {
+    if (!senha) {
+      Alert.alert('Erro', 'Por favor, informe sua senha.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // O backend espera username e password. Usamos o celular limpo como username.
+      await authService.login(celularLimpo, senha);
       router.replace('/telas/dashboard');
-    } else {
-      Alert.alert('Erro de Acesso', 'Celular ou senha incorretos.');
+    } catch (error: any) {
+      const msg = error?.response?.data?.detail || 'Erro ao realizar login. Verifique seus dados.';
+      Alert.alert('Erro de Acesso', msg);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -59,7 +75,6 @@ export default function LoginScreen() {
       >
         <ScrollView contentContainerStyle={styles.scrollContainer} bounces={false} showsVerticalScrollIndicator={false}>
           
-          {/* Cabeçalho com a Logo Oficial (SVG) */}
           <View style={styles.header}>
             <Image 
               source={require('@/assets/images/Group 2.svg')} 
@@ -70,7 +85,6 @@ export default function LoginScreen() {
             <Text style={styles.subtitle}>Sua vitrine digital no campo</Text>
           </View>
 
-          {/* Formulário */}
           <View style={styles.form}>
             <Text style={styles.inputLabel}>Celular</Text>
             <View style={styles.inputContainer}>
@@ -82,6 +96,7 @@ export default function LoginScreen() {
                 value={celular}
                 onChangeText={handleChangeCelular}
                 maxLength={15}
+                editable={!loading}
               />
             </View>
 
@@ -94,11 +109,28 @@ export default function LoginScreen() {
                 secureTextEntry
                 value={senha}
                 onChangeText={setSenha}
+                editable={!loading}
               />
             </View>
 
-            <TouchableOpacity style={styles.button} onPress={handleLogin}>
-              <Text style={styles.buttonText}>Acessar Minha Quitanda</Text>
+            <TouchableOpacity 
+              style={[styles.button, loading && styles.buttonDisabled]} 
+              onPress={handleLogin}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <Text style={styles.buttonText}>Acessar Minha Quitanda</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.signupButton} 
+              onPress={() => router.push('/cadastro')}
+              disabled={loading}
+            >
+              <Text style={styles.signupText}>Não tem uma conta? <Text style={styles.signupTextBold}>Cadastre-se</Text></Text>
             </TouchableOpacity>
           </View>
 
@@ -113,7 +145,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF' },
   scrollContainer: { flexGrow: 1, justifyContent: 'center', padding: 25, minHeight: height },
   header: { alignItems: 'center', marginBottom: 40 },
-  logo: { width: 120, height: 120, marginBottom: 15 }, // Tamanho ajustado para sua logo
+  logo: { width: 120, height: 120, marginBottom: 15 }, 
   title: { fontSize: 32, fontWeight: 'bold', color: '#2E7D32' },
   subtitle: { fontSize: 16, opacity: 0.6, marginTop: 5 },
   form: { width: '100%' },
@@ -125,5 +157,9 @@ const styles = StyleSheet.create({
   inputIcon: { marginRight: 10 },
   input: { flex: 1, paddingVertical: 15, fontSize: 16 },
   button: { backgroundColor: '#2E7D32', padding: 18, borderRadius: 12, alignItems: 'center', marginTop: 10 },
+  buttonDisabled: { backgroundColor: '#A5D6A7' },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  signupButton: { marginTop: 25, alignItems: 'center' },
+  signupText: { color: '#666', fontSize: 15 },
+  signupTextBold: { color: '#2E7D32', fontWeight: 'bold' },
 });
