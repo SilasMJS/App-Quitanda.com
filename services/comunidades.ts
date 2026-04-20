@@ -13,12 +13,16 @@ const comunidadesService = {
   listarTodas: async (): Promise<Comunidade[]> => {
     try {
       const response = await api.get('/comunidades/');
-      return response.data;
+      return response.data || [];
     } catch (error) {
-      console.error('Erro ao listar comunidades da API:', error);
-      // Retorna uma lista vazia ou mock se a API falhar completamente
+      // Retorna uma lista vazia silenciosamente se a API falhar
       return [];
     }
+  },
+
+  criarComunidade: async (dados: any) => {
+    const response = await api.post('/comunidades/', dados);
+    return response.data;
   }
 };
 

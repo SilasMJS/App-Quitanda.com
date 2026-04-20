@@ -2,11 +2,17 @@ import axios from 'axios';
 import storage from './storage';
 
 // URL principal da sua API
-const API_URL = 'https://163.176.44.29';
+// Para emulador Android: http://10.0.2.2:8000
+// Para celular físico: http://SEU_IP_LOCAL:8000 (ex: http://192.168.1.50:8000)
+// Para produção (HTTPS): Use seu domínio (ex: https://api.quitanda.com)
+
+// IMPORTANTE: O Android exige HTTPS com certificado válido para produção.
+// Se estiver usando HTTP puro, certifique-se de que o app.json permite Cleartext Traffic.
+const API_URL = 'http://163.176.44.29'; // Alterado para http:// conforme orientação do servidor
 
 const api = axios.create({
   baseURL: API_URL,
-  timeout: 15000, // Aumentado para dar tempo em conexões lentas
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -21,12 +27,11 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-// Interceptor de resposta simplificado para evitar travamentos no LogBox
+// Interceptor de resposta simplificado
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Apenas loga no terminal, sem interromper o fluxo se formos tratar o erro depois
-    console.log('API Info:', error.config?.url, error.message);
+    // Apenas repassa o erro para ser tratado onde a chamada foi feita
     return Promise.reject(error);
   }
 );

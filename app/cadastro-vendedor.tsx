@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TextInput, Alert, Dimensions, ActivityIndicator, Modal, FlatList } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Text, View } from '../components/Themed';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import authService from '../services/auth';
 import vendedoresService, { Endereco } from '../services/vendedores';
 import comunidadesService, { Comunidade } from '../services/comunidades';
@@ -44,8 +46,7 @@ export default function CadastroVendedorScreen() {
         setUsuarioId(user.id);
         setComunidades(listaComunidades);
       } catch (error) {
-        console.error('Erro ao carregar dados:', error);
-        Alert.alert('Erro', 'Não foi possível carregar as informações iniciais.');
+        // Silencia erros de carregamento inicial (ex: comunidades não disponíveis)
       } finally {
         setLoadingComunidades(false);
       }
@@ -104,6 +105,25 @@ export default function CadastroVendedorScreen() {
   return (
     <View style={styles.outerContainer}>
       <StatusBar style="dark" />
+      
+      {/* Cabeçalho Superior Padronizado */}
+      <View style={styles.topHeader}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={26} color="#2E7D32" />
+        </TouchableOpacity>
+        
+        <View style={styles.logoRow}>
+          <Image
+            source={require('../assets/images/Group 2.svg')}
+            style={{ width: 35, height: 35 }}
+            contentFit="contain"
+          />
+          <Text style={styles.logoText}>uitanda.com</Text>
+        </View>
+        
+        <View style={{ width: 40 }} />
+      </View>
+
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
         style={styles.container}
@@ -227,7 +247,25 @@ export default function CadastroVendedorScreen() {
 const styles = StyleSheet.create({
   outerContainer: { flex: 1, backgroundColor: '#FFF' },
   container: { flex: 1, backgroundColor: '#FFF' },
-  scrollContainer: { flexGrow: 1, padding: 25, paddingTop: 40 },
+  topHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    height: 60 + Constants.statusBarHeight,
+    backgroundColor: '#FFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+    paddingTop: Constants.statusBarHeight,
+  },
+  logoRow: { flexDirection: 'row', alignItems: 'center' },
+  logoText: { fontSize: 18, fontWeight: '900', color: '#2E7D32', marginLeft: -2 },
+  backButton: { padding: 5 },
+  scrollContainer: { 
+    flexGrow: 1, 
+    padding: 25, 
+    paddingTop: 10,
+  },
   header: { marginBottom: 30 },
   title: { fontSize: 26, fontWeight: 'bold', color: '#2E7D32' },
   subtitle: { fontSize: 16, color: '#666', marginTop: 5 },

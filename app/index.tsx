@@ -5,6 +5,7 @@ import { Text, View } from '@/components/Themed';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image'; 
+import Constants from 'expo-constants';
 import authService from '../services/auth';
 
 const { height } = Dimensions.get('window');
@@ -17,6 +18,7 @@ export default function LoginScreen() {
   const [celular, setCelular] = useState(''); 
   const [senha, setSenha] = useState(''); 
   const [loading, setLoading] = useState(false);
+  const [mostrarSenha, setMostrarSenha] = useState(false);
 
   /**
    * formatarCelular - Aplica máscara (XX) XXXXX-XXXX
@@ -106,11 +108,21 @@ export default function LoginScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="••••••••"
-                secureTextEntry
+                secureTextEntry={!mostrarSenha}
                 value={senha}
                 onChangeText={setSenha}
                 editable={!loading}
               />
+              <TouchableOpacity 
+                onPress={() => setMostrarSenha(!mostrarSenha)}
+                style={styles.eyeIcon}
+              >
+                <Ionicons 
+                  name={mostrarSenha ? "eye-off-outline" : "eye-outline"} 
+                  size={22} 
+                  color="#666" 
+                />
+              </TouchableOpacity>
             </View>
 
             <TouchableOpacity 
@@ -143,7 +155,13 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   outerContainer: { flex: 1, backgroundColor: '#FFF' },
   container: { flex: 1, backgroundColor: '#FFF' },
-  scrollContainer: { flexGrow: 1, justifyContent: 'center', padding: 25, minHeight: height },
+  scrollContainer: { 
+    flexGrow: 1, 
+    justifyContent: 'center', 
+    padding: 25, 
+    minHeight: height,
+    paddingTop: Constants.statusBarHeight + 10,
+  },
   header: { alignItems: 'center', marginBottom: 40 },
   logo: { width: 120, height: 120, marginBottom: 15 }, 
   title: { fontSize: 32, fontWeight: 'bold', color: '#2E7D32' },
@@ -156,6 +174,7 @@ const styles = StyleSheet.create({
   },
   inputIcon: { marginRight: 10 },
   input: { flex: 1, paddingVertical: 15, fontSize: 16 },
+  eyeIcon: { padding: 5 },
   button: { backgroundColor: '#2E7D32', padding: 18, borderRadius: 12, alignItems: 'center', marginTop: 10 },
   buttonDisabled: { backgroundColor: '#A5D6A7' },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },

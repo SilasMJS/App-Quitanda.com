@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, Modal, FlatList, Dimensions, SafeAreaView, ActivityIndicator } from 'react-native';
+import { StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, Modal, FlatList, Dimensions, ActivityIndicator, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { Text, View } from '@/components/Themed';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import Constants from 'expo-constants';
 import produtosService from '../../services/produtos';
 
 const { width } = Dimensions.get('window');
@@ -80,26 +82,32 @@ export default function ProdutosScreen() {
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <StatusBar style="dark" />
         <ActivityIndicator size="large" color="#2E7D32" />
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+      <StatusBar style="dark" />
+
+      <View style={styles.topHeader}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={26} color="#2E7D32" />
+        </TouchableOpacity>
+        
+        <View style={styles.logoRow}>
+          <Image source={require('@/assets/images/Group 2.svg')} style={{ width: 35, height: 35 }} contentFit="contain" />
+          <Text style={styles.logoText}>uitanda.com</Text>
+        </View>
+        
+        <View style={{ width: 40 }} />
+      </View>
+
       <View style={styles.content}>
         <View style={styles.header}>
-          <View style={styles.logoRow}>
-            <Image source={require('@/assets/images/Group 2.svg')} style={{ width: 35, height: 35 }} contentFit="contain" />
-            <Text style={styles.logoText}>uitanda.com</Text>
-          </View>
-          <TouchableOpacity 
-            style={styles.btnVoltar}
-            onPress={() => router.back()}
-          >
-            <Ionicons name="arrow-back-circle-outline" size={20} color="#FFF" />
-            <Text style={styles.btnVoltarText}>VOLTAR</Text>
-          </TouchableOpacity>
+          <Text style={styles.title}>Meus Produtos</Text>
         </View>
 
         <View style={styles.searchHeader}>
@@ -228,18 +236,31 @@ export default function ProdutosScreen() {
           </View>
         </Modal>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFF' },
-  content: { flex: 1, padding: 20 },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#FFF',
+  },
+  topHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    height: 60 + Constants.statusBarHeight,
+    backgroundColor: '#FFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+    paddingTop: Constants.statusBarHeight,
+  },
+  content: { flex: 1, padding: 20, paddingTop: 10 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   logoRow: { flexDirection: 'row', alignItems: 'center' },
   logoText: { fontSize: 18, fontWeight: '900', color: '#2E7D32', marginLeft: -2 },
-  btnVoltar: { backgroundColor: '#0A4D2E', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
-  btnVoltarText: { color: '#FFF', fontSize: 12, fontWeight: '700', marginLeft: 5 },
+  backButton: { padding: 5 },
   searchHeader: { flexDirection: 'row', paddingVertical: 15, alignItems: 'center', gap: 10 },
   searchBar: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5F5F5', paddingHorizontal: 15, borderRadius: 10, height: 45 },
   searchInput: { flex: 1, marginLeft: 10, fontSize: 16 },
@@ -280,4 +301,3 @@ const styles = StyleSheet.create({
   cancelBtn: { marginTop: 15, alignItems: 'center' },
   cancelBtnText: { color: '#FF5252', fontWeight: 'bold' }
 });
-

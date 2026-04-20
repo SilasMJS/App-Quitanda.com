@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, FlatList, TouchableOpacity, SafeAreaView, ActivityIndicator, Alert } from 'react-native';
+import { StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { Text, View } from '../../components/Themed';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import Constants from 'expo-constants';
 import pagamentosService from '../../services/pagamentos';
 import { Pedido } from '../../services/reservas';
 
@@ -62,25 +64,28 @@ export default function PagamentosScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <View style={styles.logoRow}>
-            <Image source={require('../../assets/images/Group 2.svg')} style={{ width: 35, height: 35 }} contentFit="contain" />
-            <Text style={styles.logoText}>uitanda.com</Text>
-          </View>
-          <TouchableOpacity style={styles.btnVoltar} onPress={() => router.back()}>
-            <Ionicons name="arrow-back-circle-outline" size={20} color="#FFF" />
-            <Text style={styles.btnVoltarText}>VOLTAR</Text>
-          </TouchableOpacity>
+    <View style={styles.container}>
+      <StatusBar style="dark" />
+      <View style={styles.topHeader}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={26} color="#2E7D32" />
+        </TouchableOpacity>
+        
+        <View style={styles.logoRow}>
+          <Image source={require('../../assets/images/Group 2.svg')} style={{ width: 35, height: 35 }} contentFit="contain" />
+          <Text style={styles.logoText}>uitanda.com</Text>
         </View>
+        
+        <View style={{ width: 40 }} />
+      </View>
 
+      <View style={styles.content}>
         {loading ? (
           <ActivityIndicator size="large" color="#2E7D32" style={{ marginTop: 50 }} />
         ) : !exibirHistorico ? (
           <>
             <TouchableOpacity style={styles.btnVerHistorico} onPress={() => setExibirHistorico(true)}>
-              <Text style={styles.btnVerHistoricoText}>VER HISTORICO</Text>
+              <Text style={styles.btnVerHistoricoText}>VER HISTÓRICO</Text>
             </TouchableOpacity>
             <FlatList
               data={pagamentos}
@@ -92,7 +97,7 @@ export default function PagamentosScreen() {
           </>
         ) : (
           <>
-            <Text style={styles.title}>HISTORICO</Text>
+            <Text style={styles.title}>HISTÓRICO</Text>
             <FlatList
               data={historico}
               keyExtractor={(item) => item.id}
@@ -110,18 +115,30 @@ export default function PagamentosScreen() {
           </>
         )}
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFF' },
-  content: { flex: 1, padding: 20 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#FFF',
+  },
+  topHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    height: 60 + Constants.statusBarHeight,
+    backgroundColor: '#FFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+    paddingTop: Constants.statusBarHeight,
+  },
+  content: { flex: 1, padding: 20, paddingTop: 10 },
   logoRow: { flexDirection: 'row', alignItems: 'center' },
   logoText: { fontSize: 18, fontWeight: '900', color: '#2E7D32', marginLeft: -2 },
-  btnVoltar: { backgroundColor: '#0A4D2E', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
-  btnVoltarText: { color: '#FFF', fontSize: 12, fontWeight: '700', marginLeft: 5 },
+  backButton: { padding: 5 },
   title: { fontSize: 28, fontWeight: '900', textAlign: 'center', color: '#333', marginBottom: 20 },
   btnVerHistorico: { backgroundColor: '#0A4D2E', alignSelf: 'center', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 6, marginBottom: 30 },
   btnVerHistoricoText: { color: '#FFF', fontSize: 14, fontWeight: '900' },

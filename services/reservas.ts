@@ -25,10 +25,10 @@ const reservasService = {
   listarRecebidos: async (): Promise<Pedido[]> => {
     try {
       const response = await api.get('/pedidos/recebidos');
-      return response.data;
+      return response.data || [];
     } catch (error) {
-      console.error('Erro ao listar reservas recebidas:', error);
-      throw error;
+      // Retorna uma lista vazia silenciosamente se a API falhar
+      return [];
     }
   },
 

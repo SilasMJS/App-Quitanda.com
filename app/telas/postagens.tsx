@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, Dimensions, SafeAreaView } from 'react-native';
+import { StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, Dimensions, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { Text, View } from '@/components/Themed';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import Constants from 'expo-constants';
 
 const { width } = Dimensions.get('window');
 
@@ -24,7 +26,7 @@ export default function PostagensScreen() {
       Alert.alert('Permissão Necessária', 'Precisamos de acesso à câmera para tirar fotos.');
       return;
     }
-    let result = await ImagePicker.launchCameraAsync({ mediaTypes: 'images', allowsEditing: true, aspect: [4, 5], quality: 0.8 });
+    let result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [4, 5], quality: 0.8 });
     if (!result.canceled) setImagem(result.assets[0].uri);
   };
 
@@ -34,12 +36,12 @@ export default function PostagensScreen() {
       Alert.alert('Permissão Necessária', 'Precisamos de acesso à câmera para gravar vídeos.');
       return;
     }
-    let result = await ImagePicker.launchCameraAsync({ mediaTypes: 'videos', allowsEditing: true, videoMaxDuration: 60, quality: 0.8 });
+    let result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Videos, allowsEditing: true, videoMaxDuration: 60, quality: 0.8 });
     if (!result.canceled) setImagem(result.assets[0].uri);
   };
 
   const selecionarGaleria = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'all', allowsEditing: true, aspect: [4, 5], quality: 0.8 });
+    let result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.All, allowsEditing: true, aspect: [4, 5], quality: 0.8 });
     if (!result.canceled) setImagem(result.assets[0].uri);
   };
 
@@ -53,19 +55,22 @@ export default function PostagensScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <View style={styles.logoRow}>
-            <Image source={require('@/assets/images/Group 2.svg')} style={{ width: 35, height: 35 }} contentFit="contain" />
-            <Text style={styles.logoText}>uitanda.com</Text>
-          </View>
-          <TouchableOpacity style={styles.btnVoltar} onPress={() => router.back()}>
-            <Ionicons name="arrow-back-circle-outline" size={20} color="#FFF" />
-            <Text style={styles.btnVoltarText}>VOLTAR</Text>
-          </TouchableOpacity>
+    <View style={styles.container}>
+      <StatusBar style="dark" />
+      <View style={styles.topHeader}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={26} color="#2E7D32" />
+        </TouchableOpacity>
+        
+        <View style={styles.logoRow}>
+          <Image source={require('@/assets/images/Group 2.svg')} style={{ width: 35, height: 35 }} contentFit="contain" />
+          <Text style={styles.logoText}>uitanda.com</Text>
         </View>
+        
+        <View style={{ width: 40 }} />
+      </View>
 
+      <View style={styles.content}>
         <ScrollView showsVerticalScrollIndicator={false}>
           <View style={styles.createPostCard}>
             <Text style={styles.cardTitle}>Nova Postagem</Text>
@@ -93,18 +98,30 @@ export default function PostagensScreen() {
           ))}
         </ScrollView>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFF' },
-  content: { flex: 1, padding: 20 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#FFF',
+  },
+  topHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    height: 60 + Constants.statusBarHeight,
+    backgroundColor: '#FFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+    paddingTop: Constants.statusBarHeight,
+  },
+  content: { flex: 1, padding: 20, paddingTop: 10 },
   logoRow: { flexDirection: 'row', alignItems: 'center' },
   logoText: { fontSize: 18, fontWeight: '900', color: '#2E7D32', marginLeft: -2 },
-  btnVoltar: { backgroundColor: '#0A4D2E', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
-  btnVoltarText: { color: '#FFF', fontSize: 12, fontWeight: '700', marginLeft: 5 },
+  backButton: { padding: 5 },
   screenTitle: { fontSize: 28, fontWeight: '900', textAlign: 'center', color: '#333', marginBottom: 20 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15, marginTop: 10 },
   createPostCard: { backgroundColor: '#FFF', borderRadius: 15, padding: 15, marginBottom: 25, elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 8 },
