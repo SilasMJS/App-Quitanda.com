@@ -42,16 +42,7 @@ const authService = {
 
   getCurrentUser: async () => {
     const response = await api.get('/usuarios/me');
-    const user = response.data;
-    
-    // Força o perfil ADMIN para o seu número específico, já que o backend está na nuvem
-    // Remove qualquer máscara que possa vir da API para comparar apenas os números
-    const cleanPhone = user?.telefone?.replace(/\D/g, '');
-    if (cleanPhone === '86994800318') {
-      user.tipo = 'ADMIN';
-    }
-    
-    return user;
+    return response.data;
   }
 };
 

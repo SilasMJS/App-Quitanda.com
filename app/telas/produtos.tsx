@@ -39,16 +39,17 @@ export default function ProdutosScreen() {
       ]);
       setEstoque(meusProdutos);
       setProdutosBase(base);
-    } catch (error) {
-      console.error('Erro ao carregar produtos:', error);
-      Alert.alert('Erro', 'Não foi possível carregar os produtos.');
+    } catch (error: any) {
+      console.error('Erro detalhado ao carregar produtos:', error);
+      const msg = error?.response?.data?.detail || error?.message || 'Erro desconhecido';
+      Alert.alert('Erro de Conexão', `Não foi possível carregar os produtos: ${msg}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const produtosFiltrados = estoque.filter(item => 
-    item.produto.nome.toLowerCase().includes(pesquisa.toLowerCase())
+  const produtosFiltrados = (estoque || []).filter(item => 
+    item?.produto?.nome?.toLowerCase().includes(pesquisa.toLowerCase())
   );
 
   const salvarProduto = async () => {
@@ -122,7 +123,7 @@ export default function ProdutosScreen() {
 
         <FlatList
           data={produtosFiltrados}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item, index) => item?.id?.toString() || index.toString()}
           numColumns={2}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
@@ -133,13 +134,22 @@ export default function ProdutosScreen() {
           }
           renderItem={({ item }) => (
             <View style={styles.productCard}>
-              <Image source={{ uri: item.produto.imagem_url }} style={styles.productImage} />
+              <Image 
+                source={{ uri: item?.produto?.imagem_url || 'https://via.placeholder.com/150' }} 
+                style={styles.productImage} 
+              />
               <View style={styles.quantityBadge}>
-                <Text style={styles.quantityBadgeText}>{item.quantidade}{item.unidade_medida}</Text>
+                <Text style={styles.quantityBadgeText}>
+                  {item?.quantidade || 0}{item?.unidade_medida || 'un'}
+                </Text>
               </View>
               <View style={styles.productInfo}>
-                <Text style={styles.productName} numberOfLines={1}>{item.produto.nome}</Text>
-                <Text style={styles.productPrice}>R$ {item.preco.toFixed(2)}</Text>
+                <Text style={styles.productName} numberOfLines={1}>
+                  {item?.produto?.nome || 'Produto sem nome'}
+                </Text>
+                <Text style={styles.productPrice}>
+                  R$ {typeof item?.preco === 'number' ? item.preco.toFixed(2) : '0,00'}
+                </Text>
               </View>
             </View>
           )}
@@ -261,6 +271,9 @@ const styles = StyleSheet.create({
   logoRow: { flexDirection: 'row', alignItems: 'center' },
   logoText: { fontSize: 18, fontWeight: '900', color: '#2E7D32', marginLeft: -2 },
   backButton: { padding: 5 },
+  btnVoltar: { backgroundColor: '#0A4D2E', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
+  btnVoltarText: { color: '#FFF', fontSize: 12, fontWeight: '700', marginLeft: 5 },
+  title: { fontSize: 24, fontWeight: '900', color: '#333', marginBottom: 20 },
   searchHeader: { flexDirection: 'row', paddingVertical: 15, alignItems: 'center', gap: 10 },
   searchBar: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5F5F5', paddingHorizontal: 15, borderRadius: 10, height: 45 },
   searchInput: { flex: 1, marginLeft: 10, fontSize: 16 },

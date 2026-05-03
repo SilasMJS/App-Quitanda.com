@@ -30,6 +30,31 @@ export default function CadastroVendedorScreen() {
   const [cidade, setCidade] = useState('');
   const [estado, setEstado] = useState('');
 
+  // Busca CEP automático
+  const buscarCEP = async (valor: string) => {
+    const cepLimpo = valor.replace(/\D/g, '');
+    setCep(cepLimpo);
+
+    if (cepLimpo.length === 8) {
+      try {
+        const response = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
+        const data = await response.json();
+
+        if (!data.erro) {
+          setRua(data.logradouro);
+          setBairro(data.bairro);
+          setCidade(data.localidade);
+          setEstado(data.uf);
+          // O foco vai para o número automaticamente (opcional)
+        } else {
+          Alert.alert('CEP não encontrado', 'Verifique o número digitado.');
+        }
+      } catch (error) {
+        console.error('Erro ao buscar CEP:', error);
+      }
+    }
+  };
+
   // Vendedor info
   const [nomeFantasia, setNomeFantasia] = useState('');
   const [descricao, setDescricao] = useState('');
@@ -139,7 +164,14 @@ export default function CadastroVendedorScreen() {
             <Text style={styles.sectionTitle}>Endereço da Quitanda</Text>
             
             <Text style={styles.inputLabel}>CEP</Text>
-            <TextInput style={styles.input} placeholder="00000-000" value={cep} onChangeText={setCep} keyboardType="numeric" />
+            <TextInput 
+              style={styles.input} 
+              placeholder="00000-000" 
+              value={cep} 
+              onChangeText={buscarCEP} 
+              keyboardType="numeric" 
+              maxLength={8}
+            />
 
             <View style={styles.row}>
               <View style={{ flex: 3, marginRight: 10 }}>

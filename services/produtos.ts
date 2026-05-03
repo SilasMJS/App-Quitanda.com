@@ -47,7 +47,6 @@ const produtosService = {
   listarProdutosBase: async () => {
     try {
       // Endpoint para listar os produtos globais cadastrados no sistema
-      // para que o vendedor possa escolher qual quer vender
       const response = await api.get('/produtos/');
       return response.data;
     } catch (error) {

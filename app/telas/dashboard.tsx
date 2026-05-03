@@ -9,9 +9,6 @@ import Constants from 'expo-constants';
 import authService from '../../services/auth';
 import comunidadesService from '../../services/comunidades';
 
-/**
- * DashboardScreen - Tela Inicial reformulada conforme referência do Figma.
- */
 export default function DashboardScreen() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
@@ -208,7 +205,7 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#FFFFFF',
     paddingTop: Constants.statusBarHeight,
   },
   scrollContent: { padding: 20, paddingBottom: 40 },

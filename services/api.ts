@@ -1,14 +1,31 @@
 import axios from 'axios';
+import Constants from 'expo-constants';
 import storage from './storage';
 
-// URL principal da sua API
-// Para emulador Android: http://10.0.2.2:8000
-// Para celular físico: http://SEU_IP_LOCAL:8000 (ex: http://192.168.1.50:8000)
-// Para produção (HTTPS): Use seu domínio (ex: https://api.quitanda.com)
+/**
+ * Detecta automaticamente o endereço do backend:
+ * - Emulador Android: 10.0.2.2
+ * - iOS/Físico: IP da máquina que está rodando o Expo
+ * - Produção: URL definida
+ */
+const getBaseUrl = () => {
+  // Se estiver em produção, coloque sua URL aqui
+  // return 'https://api.suaquitanda.com';
 
-// IMPORTANTE: O Android exige HTTPS com certificado válido para produção.
-// Se estiver usando HTTP puro, certifique-se de que o app.json permite Cleartext Traffic.
-const API_URL = 'http://163.176.44.29'; // Alterado para http:// conforme orientação do servidor
+  const debuggerHost = Constants.expoConfig?.hostUri;
+  const localhost = debuggerHost?.split(':').shift();
+
+  if (!localhost) {
+    return 'http://localhost:8000';
+  }
+
+  // Se estiver no emulador Android, o localhost da máquina é 10.0.2.2
+  // Mas o hostUri do Expo geralmente já aponta para o IP correto da rede local.
+  return `http://${localhost}:8000`;
+};
+
+const API_URL = getBaseUrl();
+console.log('Conectando à API em:', API_URL);
 
 const api = axios.create({
   baseURL: API_URL,

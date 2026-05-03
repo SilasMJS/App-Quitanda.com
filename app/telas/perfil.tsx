@@ -64,7 +64,10 @@ export default function PerfilScreen() {
         <RNView style={{ width: 40 }} />
       </RNView>
 
-      <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContainer} 
+        showsVerticalScrollIndicator={false}
+      >
         {/* Cartão de Identificação */}
         <RNView style={styles.profileCard}>
           <RNView style={styles.avatarCircle}>
@@ -73,17 +76,38 @@ export default function PerfilScreen() {
           <Text style={styles.userName}>{user?.nome || 'Usuário'}</Text>
           <RNView style={[
             styles.roleBadge, 
-            user?.tipo === 'ADMIN' && { backgroundColor: '#FBC02D' } // Cor dourada para Admin
+            user?.tipo === 'ADMIN' && { backgroundColor: '#FBC02D' }, // Cor dourada para Admin
+            !user?.cadastro_completo && user?.tipo !== 'ADMIN' && { backgroundColor: '#FF9800' } // Cor laranja para Incompleto
           ]}>
             <Text style={styles.roleText}>
-              {user?.tipo === 'ADMIN' ? 'ADMINISTRADOR' : (user?.tipo === 'VENDEDOR' ? 'VENDEDOR' : 'EM CADASTRO')}
+              {user?.tipo === 'ADMIN' ? 'ADMINISTRADOR' : (user?.cadastro_completo ? 'VENDEDOR' : 'CADASTRO INCOMPLETO')}
             </Text>
           </RNView>
         </RNView>
 
+        {/* Banner de Aviso de Cadastro Incompleto */}
+        {!user?.cadastro_completo && user?.tipo !== 'ADMIN' && (
+          <TouchableOpacity 
+            style={styles.incompleteBanner}
+            onPress={() => router.push('/cadastro-vendedor')}
+          >
+            <Ionicons name="warning-outline" size={24} color="#E65100" />
+            <RNView style={{ flex: 1, marginLeft: 12, backgroundColor: 'transparent' }}>
+              <Text style={styles.incompleteTitle}>Ação Necessária</Text>
+              <Text style={styles.incompleteSubtitle}>Você ainda não pode vender. Complete seu perfil de vendedor agora.</Text>
+            </RNView>
+            <Ionicons name="chevron-forward" size={18} color="#E65100" />
+          </TouchableOpacity>
+        )}
+
         {/* Informações de Contato */}
         <RNView style={styles.section}>
-          <Text style={styles.sectionTitle}>DADOS PESSOAIS</Text>
+          <RNView style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>DADOS PESSOAIS</Text>
+            <TouchableOpacity onPress={() => router.push('/cadastro-vendedor')}>
+               <Text style={styles.editLink}>Editar</Text>
+            </TouchableOpacity>
+          </RNView>
           <RNView style={styles.infoRow}>
             <Ionicons name="call-outline" size={20} color="#2E7D32" />
             <Text style={styles.infoLabel}>{user?.telefone}</Text>
@@ -93,6 +117,38 @@ export default function PerfilScreen() {
             <Text style={styles.infoLabel}>{user?.email || 'E-mail não cadastrado'}</Text>
           </RNView>
         </RNView>
+
+        {/* Informações da Quitanda (Visível se for VENDEDOR e cadastro completo) */}
+        {user?.cadastro_completo && user?.tipo !== 'ADMIN' && (
+          <RNView style={styles.section}>
+            <RNView style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>MINHA QUITANDA</Text>
+              <TouchableOpacity onPress={() => router.push('/cadastro-vendedor')}>
+                <Text style={styles.editLink}>Editar</Text>
+              </TouchableOpacity>
+            </RNView>
+            <RNView style={styles.infoCard}>
+              <RNView style={styles.infoRowSimple}>
+                <Ionicons name="storefront-outline" size={18} color="#2E7D32" />
+                <Text style={styles.infoTextBold}>{user?.vendedor?.nome_fantasia || 'Nome não definido'}</Text>
+              </RNView>
+              <RNView style={styles.infoRowSimple}>
+                <Ionicons name="card-outline" size={18} color="#2E7D32" />
+                <Text style={styles.infoText}>PIX: {user?.vendedor?.chave_pix || 'Não informado'}</Text>
+              </RNView>
+              <RNView style={styles.infoRowSimple}>
+                <Ionicons name="location-outline" size={18} color="#2E7D32" />
+                <Text style={styles.infoText} numberOfLines={2}>
+                  {user?.endereco ? `${user.endereco.rua}, ${user.endereco.numero} - ${user.endereco.bairro}` : 'Endereço não cadastrado'}
+                </Text>
+              </RNView>
+              <RNView style={styles.infoRowSimple}>
+                <Ionicons name="people-outline" size={18} color="#2E7D32" />
+                <Text style={styles.infoText}>Comunidade: {user?.vendedor?.comunidade?.nome || 'Nenhuma'}</Text>
+              </RNView>
+            </RNView>
+          </RNView>
+        )}
 
         {/* Seção Administrativa - Visível apenas para ADMIN */}
         {user?.tipo === 'ADMIN' && (
@@ -177,7 +233,11 @@ const styles = StyleSheet.create({
   backButton: { padding: 5 },
   logoRow: { flexDirection: 'row', alignItems: 'center' },
   logoText: { fontSize: 18, fontWeight: '900', color: '#2E7D32', marginLeft: -2 },
-  scrollContent: { flex: 1, padding: 25 },
+  scrollContainer: { 
+    padding: 25, 
+    paddingBottom: 80, // Garante que nada fique colado no final
+  },
+  scrollContent: { flex: 1, padding: 25, paddingBottom: 60 },
   profileCard: {
     alignItems: 'center',
     marginBottom: 35,
@@ -204,7 +264,15 @@ const styles = StyleSheet.create({
   },
   roleText: { color: '#FFF', fontSize: 10, fontWeight: 'bold' },
   section: { marginBottom: 35 },
-  sectionTitle: { fontSize: 13, fontWeight: '900', color: '#999', marginBottom: 15, letterSpacing: 1 },
+  sectionHeader: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center',
+    marginBottom: 10,
+    backgroundColor: 'transparent'
+  },
+  sectionTitle: { fontSize: 13, fontWeight: '900', color: '#999', letterSpacing: 1 },
+  editLink: { fontSize: 13, color: '#2E7D32', fontWeight: 'bold' },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -215,7 +283,42 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#F0F0F0',
   },
+  infoCard: {
+    backgroundColor: '#F9F9F9',
+    padding: 20,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  infoRowSimple: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    backgroundColor: 'transparent'
+  },
+  infoText: { fontSize: 15, color: '#555', marginLeft: 12 },
+  infoTextBold: { fontSize: 16, fontWeight: 'bold', color: '#333', marginLeft: 12 },
   infoLabel: { fontSize: 16, color: '#333', marginLeft: 15, fontWeight: '500' },
+  incompleteBanner: {
+    backgroundColor: '#FFF3E0',
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    borderRadius: 15,
+    marginBottom: 35,
+    borderWidth: 1,
+    borderColor: '#FFE0B2',
+  },
+  incompleteTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#E65100',
+  },
+  incompleteSubtitle: {
+    fontSize: 12,
+    color: '#EF6C00',
+    marginTop: 2,
+  },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
