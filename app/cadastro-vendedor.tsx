@@ -139,7 +139,7 @@ export default function CadastroVendedorScreen() {
         
         <View style={styles.logoRow}>
           <Image
-            source={require('../assets/images/Group 2.svg')}
+            source={require('../assets/images/logo.svg')}
             style={{ width: 35, height: 35 }}
             contentFit="contain"
           />

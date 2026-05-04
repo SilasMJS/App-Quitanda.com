@@ -72,7 +72,7 @@ export default function PagamentosScreen() {
         </TouchableOpacity>
         
         <View style={styles.logoRow}>
-          <Image source={require('../../assets/images/Group 2.svg')} style={{ width: 35, height: 35 }} contentFit="contain" />
+          <Image source={require('../../assets/images/logo.svg')} style={{ width: 35, height: 35 }} contentFit="contain" />
           <Text style={styles.logoText}>uitanda.com</Text>
         </View>
         

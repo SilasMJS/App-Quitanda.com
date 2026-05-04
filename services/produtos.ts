@@ -32,7 +32,8 @@ const produtosService = {
   cadastrarProduto: async (dados: {
     produto_id: string;
     preco: number;
-    quantidade: number;
+    estoque: number;
+    imagem_url?: string | null;
     unidade_medida: string;
   }) => {
     try {
@@ -40,6 +41,31 @@ const produtosService = {
       return response.data;
     } catch (error) {
       console.error('Erro ao cadastrar produto:', error);
+      throw error;
+    }
+  },
+
+  atualizarProduto: async (id: string, dados: {
+    preco?: number;
+    estoque?: number;
+    imagem_url?: string | null;
+    status?: string;
+  }) => {
+    try {
+      const response = await api.put(`/vendedores/produtos/${id}`, dados);
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao atualizar produto:', error);
+      throw error;
+    }
+  },
+
+  deletarProduto: async (id: string) => {
+    try {
+      const response = await api.delete(`/vendedores/produtos/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao deletar produto:', error);
       throw error;
     }
   },

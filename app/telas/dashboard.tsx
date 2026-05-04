@@ -8,20 +8,28 @@ import { StatusBar } from 'expo-status-bar';
 import Constants from 'expo-constants';
 import authService from '../../services/auth';
 import comunidadesService from '../../services/comunidades';
+import reservasService from '../../services/reservas';
 
 export default function DashboardScreen() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [countReservas, setCountReservas] = useState(0);
 
   useEffect(() => {
     async function loadData() {
       try {
-        const [userData, comunidades] = await Promise.all([
+        const [userData, comunidades, reservas] = await Promise.all([
           authService.getCurrentUser(),
-          comunidadesService.listarTodas()
+          comunidadesService.listarTodas(),
+          reservasService.listarRecebidos().catch(() => [])
         ]);
         setUser(userData);
+        
+        // Conta apenas as pendentes
+        const pendentes = reservas.filter((r: any) => r.status === 'PENDENTE').length;
+        setCountReservas(pendentes);
+        
       } catch (error) {
         console.error('Erro ao carregar dados do dashboard:', error);
       } finally {
@@ -40,9 +48,9 @@ export default function DashboardScreen() {
 
   const sellerMenuItems = [
     { label: 'POSTAGEM', route: '/telas/postagens', badge: null, color: '#40C993' },
-    { label: 'RESERVAS', route: '/telas/reservas', badge: 2, color: '#40C993' },
+    { label: 'RESERVAS', route: '/telas/reservas', badge: countReservas > 0 ? countReservas : null, color: '#40C993' },
     { label: 'PRODUTOS', route: '/telas/produtos', badge: null, color: '#40C993' },
-    { label: 'PAGAMENTOS', route: '/telas/pagamentos', badge: 1, color: '#40C993' },
+    { label: 'PAGAMENTOS', route: '/telas/pagamentos', badge: null, color: '#40C993' },
   ];
 
   const adminMenuItems = [
@@ -153,7 +161,7 @@ export default function DashboardScreen() {
 
             <View style={styles.logoContainer}>
               <Image
-                source={require('@/assets/images/Group 2.svg')}
+                source={require('@/assets/images/logo.svg')}
                 style={{ width: 60, height: 60 }}
                 contentFit="contain"
               />

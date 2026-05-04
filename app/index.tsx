@@ -8,8 +8,6 @@ import { Image } from 'expo-image';
 import Constants from 'expo-constants';
 import authService from '../services/auth';
 
-const { height } = Dimensions.get('window');
-
 /**
  * LoginScreen - Tela inicial do aplicativo.
  */
@@ -19,6 +17,7 @@ export default function LoginScreen() {
   const [senha, setSenha] = useState(''); 
   const [loading, setLoading] = useState(false);
   const [mostrarSenha, setMostrarSenha] = useState(false);
+  const { height } = Dimensions.get('window');
 
   /**
    * formatarCelular - Aplica máscara (XX) XXXXX-XXXX
@@ -57,7 +56,6 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      // O backend espera username e password. Usamos o celular limpo como username.
       await authService.login(celularLimpo, senha);
       router.replace('/telas/dashboard');
     } catch (error: any) {
@@ -75,11 +73,11 @@ export default function LoginScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
         style={styles.container}
       >
-        <ScrollView contentContainerStyle={styles.scrollContainer} bounces={false} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={[styles.scrollContainer, { minHeight: height }]} bounces={false} showsVerticalScrollIndicator={false}>
           
           <View style={styles.header}>
             <Image 
-              source={require('@/assets/images/Group 2.svg')} 
+              source={require('@/assets/images/logo.svg')} 
               style={styles.logo}
               contentFit="contain"
             />
@@ -159,7 +157,6 @@ const styles = StyleSheet.create({
     flexGrow: 1, 
     justifyContent: 'center', 
     padding: 25, 
-    minHeight: height,
     paddingTop: Constants.statusBarHeight + 10,
   },
   header: { alignItems: 'center', marginBottom: 40 },

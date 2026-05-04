@@ -84,7 +84,9 @@ export default function ReservasScreen() {
             {i.quantidade}x {i.produto_nome || 'Produto'}
           </Text>
         ))}
-        <Text style={styles.totalText}>R$ {item.valor_total.toFixed(2)}</Text>
+        <Text style={styles.totalText}>
+          R$ {(item.valor_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+        </Text>
       </View>
 
       {item.status === 'PENDENTE' && (
@@ -116,7 +118,7 @@ export default function ReservasScreen() {
         
         <View style={styles.logoRow}>
           <Image
-            source={require('../../assets/images/Group 2.svg')}
+            source={require('../../assets/images/logo.svg')}
             style={{ width: 35, height: 35 }}
             contentFit="contain"
           />
@@ -139,8 +141,12 @@ export default function ReservasScreen() {
             contentContainerStyle={styles.list}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
-              <View style={{ alignItems: 'center', marginTop: 50 }}>
-                <Text style={{ color: '#999' }}>Nenhuma reserva pendente.</Text>
+              <View style={{ alignItems: 'center', marginTop: 100, backgroundColor: 'transparent' }}>
+                <Ionicons name="cart-outline" size={80} color="#E0E0E0" />
+                <Text style={{ color: '#999', fontSize: 18, fontWeight: 'bold', marginTop: 15 }}>Nenhuma reserva pendente</Text>
+                <Text style={{ color: '#CCC', fontSize: 14, textAlign: 'center', marginTop: 5, paddingHorizontal: 40 }}>
+                  Quando os clientes fizerem reservas na sua quitanda, elas aparecerão aqui.
+                </Text>
               </View>
             }
             onRefresh={carregarReservas}

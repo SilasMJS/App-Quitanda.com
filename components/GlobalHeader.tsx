@@ -23,7 +23,7 @@ export default function GlobalHeader({ showBack = false }: GlobalHeaderProps) {
         ) : (
           <View style={styles.logoRow}>
             <Image 
-              source={require('../assets/images/Group 2.svg')} 
+              source={require('../assets/images/logo.svg')} 
               style={styles.logo} 
               contentFit="contain" 
             />
