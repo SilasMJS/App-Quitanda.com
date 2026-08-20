@@ -6,6 +6,8 @@ import { Text, View } from '../../components/Themed';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import authService from '../../services/auth';
+import api from '../../services/api';
+import { pickImage, uploadImage } from '../../services/uploadService';
 import Constants from 'expo-constants';
 
 export default function PerfilScreen() {
@@ -70,23 +72,52 @@ export default function PerfilScreen() {
       >
         {/* Cartão de Identificação */}
         <RNView style={styles.profileCard}>
-          <RNView style={styles.avatarCircle}>
-            <Ionicons name="person" size={45} color="#2E7D32" />
-          </RNView>
+          <TouchableOpacity 
+            style={styles.avatarCircle}
+            onPress={async () => {
+              const uri = await pickImage();
+              if (uri) {
+                setLoading(true);
+                try {
+                  const finalUrl = await uploadImage(uri, 'usuarios');
+                  await api.put('/usuarios/me', {
+                    nome: user.nome,
+                    imagem_url: finalUrl
+                  });
+                  // Atualiza localmente
+                  setUser({ ...user, imagem_url: finalUrl });
+                } catch (e) {
+                  Alert.alert('Erro', 'Não foi possível atualizar a foto.');
+                } finally {
+                  setLoading(false);
+                }
+              }
+            }}
+          >
+            {user?.imagem_url ? (
+              <Image source={{ uri: user.imagem_url }} style={{ width: 86, height: 86, borderRadius: 43 }} />
+            ) : (
+              <Ionicons name="person" size={45} color="#2E7D32" />
+            )}
+            <RNView style={{position: 'absolute', bottom: -5, right: -5, backgroundColor: '#1976D2', padding: 6, borderRadius: 15, elevation: 3}}>
+              <Ionicons name="camera" size={14} color="#FFF" />
+            </RNView>
+          </TouchableOpacity>
           <Text style={styles.userName}>{user?.nome || 'Usuário'}</Text>
           <RNView style={[
             styles.roleBadge, 
-            user?.tipo === 'ADMIN' && { backgroundColor: '#FBC02D' }, // Cor dourada para Admin
-            !user?.cadastro_completo && user?.tipo !== 'ADMIN' && { backgroundColor: '#FF9800' } // Cor laranja para Incompleto
+            user?.tipo?.toUpperCase() === 'ADMIN' && { backgroundColor: '#FBC02D' },
+            user?.tipo?.toUpperCase() === 'CLIENTE' && { backgroundColor: '#1976D2' }
           ]}>
             <Text style={styles.roleText}>
-              {user?.tipo === 'ADMIN' ? 'ADMINISTRADOR' : (user?.cadastro_completo ? 'VENDEDOR' : 'CADASTRO INCOMPLETO')}
+              {user?.tipo?.toUpperCase() === 'ADMIN' ? 'ADMINISTRADOR' : 
+               user?.tipo?.toUpperCase() === 'VENDEDOR' ? 'VENDEDOR' : 'CLIENTE'}
             </Text>
           </RNView>
         </RNView>
 
         {/* Banner de Aviso de Cadastro Incompleto */}
-        {!user?.cadastro_completo && user?.tipo !== 'ADMIN' && (
+        {user?.tipo?.toUpperCase() === 'CLIENTE' && (
           <TouchableOpacity 
             style={styles.incompleteBanner}
             onPress={() => router.push('/cadastro-vendedor')}
@@ -118,8 +149,8 @@ export default function PerfilScreen() {
           </RNView>
         </RNView>
 
-        {/* Informações da Quitanda (Visível se for VENDEDOR e cadastro completo) */}
-        {user?.cadastro_completo && user?.tipo !== 'ADMIN' && (
+        {/* Informações da Quitanda (Visível se for VENDEDOR) */}
+        {user?.tipo?.toUpperCase() === 'VENDEDOR' && (
           <RNView style={styles.section}>
             <RNView style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>MINHA QUITANDA</Text>
@@ -151,7 +182,7 @@ export default function PerfilScreen() {
         )}
 
         {/* Seção Administrativa - Visível apenas para ADMIN */}
-        {user?.tipo === 'ADMIN' && (
+        {user?.tipo?.toUpperCase() === 'ADMIN' && (
           <RNView style={styles.section}>
             <Text style={styles.sectionTitle}>PAINEL ADMINISTRATIVO</Text>
             
@@ -176,11 +207,11 @@ export default function PerfilScreen() {
         )}
 
         {/* Quitanda e Negócios - Botão Verde Sólido (Não aparece para Admin se quiser simplificar, ou mantém) */}
-        {user?.tipo !== 'ADMIN' && (
+        {user?.tipo?.toUpperCase() !== 'ADMIN' && (
           <RNView style={styles.section}>
             <Text style={styles.sectionTitle}>QUITANDA E NEGÓCIOS</Text>
             
-            {user?.cadastro_completo ? (
+            {user?.tipo?.toUpperCase() === 'VENDEDOR' ? (
               <TouchableOpacity 
                 style={styles.actionButton}
                 onPress={() => router.push('/telas/dashboard')}
@@ -195,7 +226,7 @@ export default function PerfilScreen() {
                 onPress={() => router.push('/cadastro-vendedor')}
               >
                 <Ionicons name="id-card" size={22} color="#FFF" />
-                <Text style={styles.actionButtonText}>COMPLETAR CADASTRO</Text>
+                <Text style={styles.actionButtonText}>TORNE-SE UM VENDEDOR</Text>
                 <Ionicons name="chevron-forward" size={18} color="#FFF" />
               </TouchableOpacity>
             )}

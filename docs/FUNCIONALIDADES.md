@@ -11,7 +11,7 @@ O Quitanda.com foi projetado para ser intuitivo, pegando emprestado conceitos de
 - **Edição**: Alteração de preços, quantidades e descrições.
 
 ## 3. Reservas e Pedidos
-- **Recebimento de Reservas**: Notificações e lista de produtos reservados por clientes através do site.
+- **Recebimento de Reservas**: Notificações Push em tempo real e lista de produtos reservados por clientes através do site, incluindo informações de observação/recado enviadas pelo cliente.
 - **Status de Pedido**: Controle de pedidos pendentes, em preparo ou entregues.
 
 ## 4. Financeiro e Perfil

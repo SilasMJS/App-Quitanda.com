@@ -8,7 +8,7 @@ import { Image } from 'expo-image';
 import Constants from 'expo-constants';
 import authService from '../services/auth';
 import comunidadesService, { Comunidade } from '../services/comunidades';
-import vendedoresService from '../services/vendedores';
+import api from '../services/api';
 
 const { height, width } = Dimensions.get('window');
 
@@ -24,27 +24,31 @@ export default function SignupScreen() {
   const [senha, setSenha] = useState(''); 
   const [confirmarSenha, setConfirmarSenha] = useState('');
 
-  // Passo 2: Dados de Vendedor (Opcional)
-  const [nomeFantasia, setNomeFantasia] = useState('');
-  const [chavePix, setChavePix] = useState('');
-  const [descricao, setDescricao] = useState('');
-  const [comunidadeId, setComunidadeId] = useState('');
-  const [comunidadeNome, setComunidadeNome] = useState('');
-  
-  // Lista de Comunidades
-  const [comunidades, setComunidades] = useState<Comunidade[]>([]);
-  const [modalComunidade, setModalComunidade] = useState(false);
+  // Passo 2: Endereço (Completar Cadastro)
+  const [cep, setCep] = useState('');
+  const [rua, setRua] = useState('');
+  const [numero, setNumero] = useState('');
+  const [bairro, setBairro] = useState('');
+  const [cidade, setCidade] = useState('');
+  const [estado, setEstado] = useState('');
 
-  useEffect(() => {
-    if (step === 2) {
-      loadComunidades();
+  const buscarCEP = async (valor: string) => {
+    const cepLimpo = valor.replace(/\D/g, '');
+    setCep(cepLimpo);
+    if (cepLimpo.length === 8) {
+      try {
+        const response = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
+        const data = await response.json();
+        if (!data.erro) {
+          setRua(data.logradouro);
+          setBairro(data.bairro);
+          setCidade(data.localidade);
+          setEstado(data.uf);
+        }
+      } catch (error) {}
     }
-  }, [step]);
-
-  const loadComunidades = async () => {
-    const lista = await comunidadesService.listarTodas();
-    setComunidades(lista);
   };
+
 
   const formatarCelular = (text: string) => {
     const cleaned = ('' + text).replace(/\D/g, '');
@@ -79,8 +83,7 @@ export default function SignupScreen() {
       await authService.signup({
         nome,
         telefone: celularLimpo,
-        password: senha,
-        email: email || undefined
+        password: senha
       });
       // Avança para o passo opcional
       setStep(2);
@@ -93,25 +96,23 @@ export default function SignupScreen() {
   };
 
   const handleFinalizeFull = async () => {
-    if (!nomeFantasia || !comunidadeId || !chavePix) {
-      Alert.alert('Atenção', 'Para completar o cadastro agora, preencha todos os dados da vitrine ou clique em "Pular".');
+    if (!cep || !rua || !numero || !bairro || !cidade || !estado) {
+      Alert.alert('Atenção', 'Por favor, preencha todos os campos do endereço ou clique em "Pular".');
       return;
     }
 
     setLoading(true);
     try {
-      await vendedoresService.completarCadastro({
-        nome_fantasia: nomeFantasia,
-        comunidade_id: comunidadeId,
-        chave_pix: chavePix,
-        descricao: descricao
+      await api.put('/usuarios/me/endereco', {
+        cep, rua, numero, bairro, cidade, estado,
+        latitude: 0, longitude: 0
       });
       
-      Alert.alert('Sucesso!', 'Seu cadastro está 100% completo. Boas vendas!', [
+      Alert.alert('Sucesso!', 'Conta criada com sucesso!', [
         { text: 'Ir para o App', onPress: () => router.replace('/telas/dashboard') }
       ]);
     } catch (error) {
-      Alert.alert('Erro', 'O usuário foi criado, mas houve um erro ao salvar os dados da vitrine. Você pode tentar novamente pelo Perfil.');
+      Alert.alert('Erro', 'Houve um erro ao salvar o endereço. Você pode tentar novamente pelo Perfil.');
       router.replace('/telas/dashboard');
     } finally {
       setLoading(false);
@@ -143,9 +144,9 @@ export default function SignupScreen() {
             <RNView style={[styles.stepDot, step === 2 && styles.stepActive]} />
           </RNView>
 
-          <Text style={styles.title}>{step === 1 ? 'Dados Pessoais' : 'Sua Vitrine'}</Text>
+          <Text style={styles.title}>{step === 1 ? 'Dados Pessoais' : 'Seu Endereço'}</Text>
           <Text style={styles.subtitle}>
-            {step === 1 ? 'Primeiro, as informações de acesso.' : 'Agora, como os clientes verão sua banca.'}
+            {step === 1 ? 'Primeiro, as informações de acesso.' : 'Para finalizar a conta, informe sua localização.'}
           </Text>
 
           {step === 1 ? (
@@ -168,62 +169,44 @@ export default function SignupScreen() {
             </RNView>
           ) : (
             <RNView style={styles.form}>
-              <Text style={styles.inputLabel}>Nome da sua Banca/Quitanda *</Text>
-              <TextInput style={styles.input} placeholder="Ex: Horta do Renan" value={nomeFantasia} onChangeText={setNomeFantasia} />
+              <Text style={styles.inputLabel}>CEP</Text>
+              <TextInput style={styles.input} placeholder="00000-000" keyboardType="numeric" value={cep} onChangeText={buscarCEP} maxLength={8} />
 
-              <Text style={styles.inputLabel}>Sua Comunidade *</Text>
-              <TouchableOpacity style={styles.selectField} onPress={() => setModalComunidade(true)}>
-                <Text style={comunidadeId ? styles.selectText : styles.placeholderText}>
-                  {comunidadeNome || "Selecione onde você vende..."}
-                </Text>
-                <Ionicons name="chevron-down" size={20} color="#666" />
-              </TouchableOpacity>
+              <RNView style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <RNView style={{ flex: 3, marginRight: 10 }}>
+                  <Text style={styles.inputLabel}>Rua</Text>
+                  <TextInput style={styles.input} placeholder="Rua das Flores" value={rua} onChangeText={setRua} />
+                </RNView>
+                <RNView style={{ flex: 1 }}>
+                  <Text style={styles.inputLabel}>Nº</Text>
+                  <TextInput style={styles.input} placeholder="123" value={numero} onChangeText={setNumero} />
+                </RNView>
+              </RNView>
 
-              <Text style={styles.inputLabel}>Chave PIX para Recebimento *</Text>
-              <TextInput style={styles.input} placeholder="CPF, E-mail ou Celular" value={chavePix} onChangeText={setChavePix} />
+              <Text style={styles.inputLabel}>Bairro</Text>
+              <TextInput style={styles.input} placeholder="Centro" value={bairro} onChangeText={setBairro} />
 
-              <Text style={styles.inputLabel}>Descrição da Banca (Opcional)</Text>
-              <TextInput style={[styles.input, { height: 80, textAlignVertical: 'top' }]} placeholder="Ex: Frutas colhidas toda manhã." multiline value={descricao} onChangeText={setDescricao} />
+              <RNView style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <RNView style={{ flex: 2, marginRight: 10 }}>
+                  <Text style={styles.inputLabel}>Cidade</Text>
+                  <TextInput style={styles.input} placeholder="Sua Cidade" value={cidade} onChangeText={setCidade} />
+                </RNView>
+                <RNView style={{ flex: 1 }}>
+                  <Text style={styles.inputLabel}>Estado</Text>
+                  <TextInput style={styles.input} placeholder="SP" value={estado} onChangeText={setEstado} maxLength={2} autoCapitalize="characters" />
+                </RNView>
+              </RNView>
 
               <TouchableOpacity style={[styles.primaryButton, loading && styles.buttonDisabled]} onPress={handleFinalizeFull} disabled={loading}>
                 {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.buttonText}>Finalizar Cadastro</Text>}
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.skipButton} onPress={() => router.replace('/telas/dashboard')}>
-                <Text style={styles.skipButtonText}>Pular e completar depois no perfil</Text>
+                <Text style={styles.skipButtonText}>Pular e preencher depois</Text>
               </TouchableOpacity>
             </RNView>
           )}
         </ScrollView>
-
-        {/* Modal Seleção de Comunidade */}
-        <Modal visible={modalComunidade} animationType="slide" transparent={true}>
-          <RNView style={styles.modalOverlay}>
-            <RNView style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Selecione sua Comunidade</Text>
-              <FlatList
-                data={comunidades}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                  <TouchableOpacity 
-                    style={styles.optionItem}
-                    onPress={() => {
-                      setComunidadeId(item.id);
-                      setComunidadeNome(item.nome);
-                      setModalComunidade(false);
-                    }}
-                  >
-                    <Text style={styles.optionText}>{item.nome}</Text>
-                  </TouchableOpacity>
-                )}
-                ListEmptyComponent={<Text style={{ textAlign: 'center', color: '#999', padding: 20 }}>Nenhuma comunidade encontrada.</Text>}
-              />
-              <TouchableOpacity style={styles.closeModal} onPress={() => setModalComunidade(false)}>
-                <Text style={styles.closeModalText}>FECHAR</Text>
-              </TouchableOpacity>
-            </RNView>
-          </RNView>
-        </Modal>
 
       </KeyboardAvoidingView>
     </RNView>

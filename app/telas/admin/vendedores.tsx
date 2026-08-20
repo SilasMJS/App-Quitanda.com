@@ -5,45 +5,42 @@ import { Image } from 'expo-image';
 import { Text, View } from '../../../components/Themed';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
-import comunidadesService, { Comunidade } from '../../../services/comunidades';
+import api from '../../../services/api';
 import Constants from 'expo-constants';
 
-export default function AdminComunidadesScreen() {
+export default function AdminVendedoresScreen() {
   const router = useRouter();
-  const [comunidades, setComunidades] = useState<Comunidade[]>([]);
+  const [vendedores, setVendedores] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadComunidades();
+    loadVendedores();
   }, []);
 
-  const loadComunidades = async () => {
+  const loadVendedores = async () => {
     setLoading(true);
     try {
-      const data = await comunidadesService.listarTodas();
-      setComunidades(data);
+      const response = await api.get('/vendedores/');
+      setVendedores(response.data);
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível carregar as comunidades.');
+      Alert.alert('Erro', 'Não foi possível carregar os vendedores.');
     } finally {
       setLoading(false);
     }
   };
 
-  const renderComunidade = ({ item }: { item: Comunidade }) => (
+  const renderVendedor = ({ item }: { item: any }) => (
     <RNView style={styles.card}>
-      <RNView style={[styles.colorBar, { backgroundColor: item.cor_tema || '#2E7D32' }]} />
+      <RNView style={[styles.colorBar, { backgroundColor: '#2E7D32' }]} />
       <RNView style={styles.cardContent}>
-        <Text style={styles.comunidadeNome}>{item.nome}</Text>
-        <Text style={styles.comunidadeDesc}>{item.descricao_curta}</Text>
+        <Text style={styles.nome}>{item.nome_fantasia}</Text>
+        <Text style={styles.telefone}>Chave PIX: {item.chave_pix}</Text>
         <RNView style={styles.statusRow}>
-          <RNView style={[styles.statusDot, { backgroundColor: item.ativo ? '#4CAF50' : '#F44336' }]} />
-          <Text style={styles.statusText}>{item.ativo ? 'Ativa' : 'Inativa'}</Text>
+          <RNView style={[styles.statusDot, { backgroundColor: '#4CAF50' }]} />
+          <Text style={styles.statusText}>VENDEDOR APROVADO</Text>
         </RNView>
       </RNView>
-      <TouchableOpacity 
-        style={styles.editButton}
-        onPress={() => router.push({ pathname: '/telas/admin/editar-comunidade', params: { id: item.id } })}
-      >
+      <TouchableOpacity style={styles.editButton}>
         <Ionicons name="create-outline" size={24} color="#666" />
       </TouchableOpacity>
     </RNView>
@@ -68,13 +65,13 @@ export default function AdminComunidadesScreen() {
 
       <RNView style={styles.content}>
         <RNView style={styles.header}>
-          <Text style={styles.title}>Comunidades</Text>
+          <Text style={styles.title}>Vendedores</Text>
           <TouchableOpacity 
             style={styles.addButton} 
-            onPress={() => router.push('/telas/admin/nova-comunidade')}
+            onPress={() => router.push('/telas/admin/novo-vendedor' as any)}
           >
             <Ionicons name="add" size={24} color="#FFF" />
-            <Text style={styles.addButtonText}>NOVA</Text>
+            <Text style={styles.addButtonText}>NOVO</Text>
           </TouchableOpacity>
         </RNView>
 
@@ -82,14 +79,14 @@ export default function AdminComunidadesScreen() {
           <ActivityIndicator size="large" color="#2E7D32" style={{ marginTop: 50 }} />
         ) : (
           <FlatList
-            data={comunidades}
+            data={vendedores}
             keyExtractor={(item) => item.id}
-            renderItem={renderComunidade}
+            renderItem={renderVendedor}
             contentContainerStyle={styles.list}
             ListEmptyComponent={
-              <Text style={styles.emptyText}>Nenhuma comunidade cadastrada.</Text>
+              <Text style={styles.emptyText}>Nenhum vendedor encontrado.</Text>
             }
-            onRefresh={loadComunidades}
+            onRefresh={loadVendedores}
             refreshing={loading}
           />
         )}
@@ -141,11 +138,11 @@ const styles = StyleSheet.create({
   },
   colorBar: { width: 6 },
   cardContent: { flex: 1, padding: 15 },
-  comunidadeNome: { fontSize: 18, fontWeight: 'bold', color: '#333' },
-  comunidadeDesc: { fontSize: 14, color: '#666', marginTop: 4 },
+  nome: { fontSize: 18, fontWeight: 'bold', color: '#333' },
+  telefone: { fontSize: 14, color: '#666', marginTop: 4 },
   statusRow: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
   statusDot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
-  statusText: { fontSize: 12, color: '#888', fontWeight: '500' },
+  statusText: { fontSize: 12, color: '#888', fontWeight: 'bold' },
   editButton: { padding: 15, justifyContent: 'center' },
   emptyText: { textAlign: 'center', color: '#999', marginTop: 50, fontSize: 16 }
 });

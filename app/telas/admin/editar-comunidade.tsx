@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator, View as RNView } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import { Text, View } from '../../../components/Themed';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
-import comunidadesService from '../../../services/comunidades';
+import api from '../../../services/api';
+import { pickImage, uploadImage } from '../../../services/uploadService';
 import Constants from 'expo-constants';
 
 const TIPOS_COMUNIDADE = [
@@ -15,9 +16,12 @@ const TIPOS_COMUNIDADE = [
   { label: 'Associação', value: 'associacao' },
 ];
 
-export default function NovaComunidadeScreen() {
+export default function EditarComunidadeScreen() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const params = useLocalSearchParams();
+  const comunidadeId = params.id as string;
+  
+  const [loading, setLoading] = useState(true);
 
   // Dados da Comunidade
   const [nome, setNome] = useState('');
@@ -35,6 +39,36 @@ export default function NovaComunidadeScreen() {
   const [cidade, setCidade] = useState('');
   const [estado, setEstado] = useState('');
 
+  useEffect(() => {
+    async function carregarDados() {
+      if (!comunidadeId) return;
+      try {
+        const res = await api.get(`/comunidades/${comunidadeId}`);
+        const com = res.data;
+        setNome(com.nome);
+        setDescricaoCurta(com.descricao_curta || '');
+        setDescricaoLonga(com.descricao_longa || '');
+        setTipo(com.tipo);
+        setCorTema(com.cor_tema);
+        setImagemLocal(com.imagem_url || '');
+
+        if (com.endereco) {
+          setCep(com.endereco.cep || '');
+          setRua(com.endereco.rua || '');
+          setNumero(com.endereco.numero || '');
+          setBairro(com.endereco.bairro || '');
+          setCidade(com.endereco.cidade || '');
+          setEstado(com.endereco.estado || '');
+        }
+      } catch (error) {
+        Alert.alert('Erro', 'Não foi possível carregar a comunidade');
+      } finally {
+        setLoading(false);
+      }
+    }
+    carregarDados();
+  }, [comunidadeId]);
+
   const handleSalvar = async () => {
     if (!nome || !descricaoCurta || !cep || !rua || !cidade) {
       Alert.alert('Erro', 'Por favor, preencha os campos obrigatórios (Nome, Descrição Curta, CEP, Rua e Cidade).');
@@ -43,38 +77,25 @@ export default function NovaComunidadeScreen() {
 
     setLoading(true);
     try {
-      let finalImageUrl = null;
-      if (imagemLocal) {
+      let finalImageUrl = imagemLocal;
+      if (imagemLocal && !imagemLocal.startsWith('http')) {
         finalImageUrl = await uploadImage(imagemLocal, 'comunidades');
-      } else {
-        const nameStr = nome.trim().replace(/\s+/g, '+');
-        finalImageUrl = `https://ui-avatars.com/api/?name=${nameStr}&background=1976D2&color=fff&size=256`;
       }
 
-      await comunidadesService.criarComunidade({
+      await api.put(`/comunidades/${comunidadeId}`, {
         nome,
         descricao_curta: descricaoCurta,
         descricao_longa: descricaoLonga,
         tipo,
         cor_tema: corTema,
         imagem_url: finalImageUrl,
-        endereco: {
-          cep,
-          rua,
-          numero,
-          bairro,
-          cidade,
-          estado: estado.toUpperCase(),
-          latitude: 0,
-          longitude: 0
-        }
       });
 
-      Alert.alert('Sucesso', 'Comunidade criada com sucesso!', [
+      Alert.alert('Sucesso', 'Comunidade atualizada com sucesso!', [
         { text: 'OK', onPress: () => router.back() }
       ]);
     } catch (error: any) {
-      const msg = error?.response?.data?.detail || 'Erro ao criar comunidade. Verifique os dados.';
+      const msg = error?.response?.data?.detail || 'Erro ao atualizar comunidade.';
       Alert.alert('Erro', msg);
     } finally {
       setLoading(false);
@@ -97,7 +118,7 @@ export default function NovaComunidadeScreen() {
       </RNView>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>Nova Comunidade</Text>
+        <Text style={styles.title}>Editar Comunidade</Text>
 
         <RNView style={{alignItems: 'center', marginBottom: 20}}>
           <TouchableOpacity onPress={async () => {
@@ -182,7 +203,7 @@ export default function NovaComunidadeScreen() {
           {loading ? (
             <ActivityIndicator color="#FFF" />
           ) : (
-            <Text style={styles.saveButtonText}>CRIAR COMUNIDADE</Text>
+            <Text style={styles.saveButtonText}>SALVAR ALTERAÇÕES</Text>
           )}
         </TouchableOpacity>
       </ScrollView>

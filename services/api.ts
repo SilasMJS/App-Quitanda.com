@@ -9,19 +9,9 @@ import storage from './storage';
  * - Produção: URL definida
  */
 const getBaseUrl = () => {
-  // Se estiver em produção, coloque sua URL aqui
-  // return 'https://api.suaquitanda.com';
-
-  const debuggerHost = Constants.expoConfig?.hostUri;
-  const localhost = debuggerHost?.split(':').shift();
-
-  if (!localhost) {
-    return 'http://localhost:8000';
-  }
-
-  // Se estiver no emulador Android, o localhost da máquina é 10.0.2.2
-  // Mas o hostUri do Expo geralmente já aponta para o IP correto da rede local.
-  return `http://${localhost}:8000`;
+  // Pega da variável de ambiente EXPO_PUBLIC_API_URL configurada no .env
+  // Se não existir, faz um fallback para localhost (útil apenas para emuladores locais)
+  return process.env.EXPO_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 };
 
 const API_URL = getBaseUrl();

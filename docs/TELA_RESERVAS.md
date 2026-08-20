@@ -5,7 +5,7 @@ A tela de Reservas é o local onde o vendedor parceiro visualiza e gerencia os p
 
 ## Funcionalidades
 1. **Listagem de Reservas**: Exibe uma lista de pedidos pendentes com identificação clara do comprador.
-2. **Visualização de Detalhes**: Cada card apresenta um resumo com o nome do cliente, quantidade de itens, produtos e total.
+2. **Visualização de Detalhes**: Cada card apresenta um resumo com o nome do cliente, quantidade de itens, produtos, total e as **Observações/Recados** deixadas pelo cliente no momento da compra.
 3. **Fluxo de Decisão**:
     - **Confirmar Reserva**: Abre um modal de confirmação que assegura a continuidade do pedido.
     - **Recusar Reserva**: Abre um modal permitindo o vendedor selecionar o motivo da recusa (ex: "Item esgotado").

@@ -9,6 +9,7 @@ import Constants from 'expo-constants';
 import authService from '../../services/auth';
 import comunidadesService from '../../services/comunidades';
 import reservasService from '../../services/reservas';
+import api from '../../services/api';
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -16,20 +17,32 @@ export default function DashboardScreen() {
   const [loading, setLoading] = useState(true);
   const [countReservas, setCountReservas] = useState(0);
 
+  const [countUsuarios, setCountUsuarios] = useState(0);
+  const [countComunidades, setCountComunidades] = useState(0);
+  const [countVendedores, setCountVendedores] = useState(0);
+
   useEffect(() => {
     async function loadData() {
       try {
-        const [userData, comunidades, reservas] = await Promise.all([
-          authService.getCurrentUser(),
-          comunidadesService.listarTodas(),
-          reservasService.listarRecebidos().catch(() => [])
-        ]);
+        const userData = await authService.getCurrentUser();
         setUser(userData);
         
-        // Conta apenas as pendentes
-        const pendentes = reservas.filter((r: any) => r.status === 'PENDENTE').length;
-        setCountReservas(pendentes);
-        
+        if (userData?.tipo?.toUpperCase() === 'ADMIN') {
+          // Fetch Admin metrics
+          const [comunidadesRes, usuariosRes, vendedoresRes] = await Promise.all([
+            comunidadesService.listarTodas().catch(() => []),
+            api.get('/usuarios/').catch(() => ({ data: [] })),
+            api.get('/vendedores/').catch(() => ({ data: [] }))
+          ]);
+          setCountComunidades(comunidadesRes.length);
+          setCountUsuarios(usuariosRes.data.length);
+          setCountVendedores(vendedoresRes.data.length);
+        } else {
+          // Fetch Seller metrics
+          const reservas = await reservasService.listarRecebidos().catch(() => []);
+          const pendentes = reservas.filter((r: any) => r.status === 'PENDENTE').length;
+          setCountReservas(pendentes);
+        }
       } catch (error) {
         console.error('Erro ao carregar dados do dashboard:', error);
       } finally {
@@ -44,7 +57,7 @@ export default function DashboardScreen() {
     router.replace('/');
   };
 
-  const isAdmin = user?.tipo === 'ADMIN';
+  const isAdmin = user?.tipo?.toUpperCase() === 'ADMIN';
 
   const sellerMenuItems = [
     { label: 'POSTAGEM', route: '/telas/postagens', badge: null, color: '#40C993' },
@@ -57,7 +70,7 @@ export default function DashboardScreen() {
     { label: 'COMUNIDADES', route: '/telas/admin/comunidades', icon: 'business', color: '#1976D2' },
     { label: 'CATÁLOGO', route: '/telas/admin/produtos-base', icon: 'basket', color: '#0288D1' },
     { label: 'VENDEDORES', route: '/telas/admin/vendedores', icon: 'people', color: '#01579B' },
-    { label: 'RELATÓRIOS', route: '/telas/admin/relatorios', icon: 'bar-chart', color: '#455A64' },
+    { label: 'USUÁRIOS', route: '/telas/admin/usuarios', icon: 'person', color: '#455A64' },
   ];
 
   if (loading) {
@@ -96,22 +109,38 @@ export default function DashboardScreen() {
         {isAdmin ? (
           /* --- DASHBOARD ANALÍTICO PARA ADMIN --- */
           <View style={styles.adminContent}>
-            <Text style={styles.sectionTitle}>VISÃO GERAL DO SISTEMA</Text>
             
-            {/* Cards de Métricas */}
+            <Text style={styles.sectionTitle}>VISIBILIDADE E ALCANCE</Text>
+            {/* Cards de Métricas focados em alcance social, não financeiro */}
             <View style={styles.statsGrid}>
               <View style={styles.statCard}>
-                <Text style={styles.statValue}>R$ 4.5k</Text>
-                <Text style={styles.statLabel}>Vendas (30d)</Text>
+                <Text style={styles.statValue}>{countUsuarios}</Text>
+                <Text style={styles.statLabel}>Usuários Ativos</Text>
               </View>
               <View style={styles.statCard}>
-                <Text style={styles.statValue}>12</Text>
+                <Text style={styles.statValue}>{countComunidades}</Text>
                 <Text style={styles.statLabel}>Comunidades</Text>
               </View>
               <View style={styles.statCard}>
-                <Text style={styles.statValue}>48</Text>
+                <Text style={styles.statValue}>{countVendedores}</Text>
                 <Text style={styles.statLabel}>Vendedores</Text>
               </View>
+            </View>
+
+            <Text style={styles.sectionTitle}>AÇÕES RÁPIDAS</Text>
+            <View style={styles.quickActionsGrid}>
+              <TouchableOpacity style={styles.quickActionBtn} onPress={() => router.push('/telas/admin/nova-comunidade')}>
+                <Ionicons name="add-circle" size={24} color="#2E7D32" />
+                <Text style={styles.quickActionText}>Comunidade</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.quickActionBtn} onPress={() => router.push('/telas/admin/novo-vendedor' as any)}>
+                <Ionicons name="add-circle" size={24} color="#01579B" />
+                <Text style={styles.quickActionText}>Vendedor</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.quickActionBtn} onPress={() => router.push('/telas/admin/novo-usuario' as any)}>
+                <Ionicons name="add-circle" size={24} color="#455A64" />
+                <Text style={styles.quickActionText}>Usuário</Text>
+              </TouchableOpacity>
             </View>
 
             <Text style={styles.sectionTitle}>GERENCIAMENTO</Text>
@@ -132,12 +161,12 @@ export default function DashboardScreen() {
             <Text style={styles.sectionTitle}>ATIVIDADE RECENTE</Text>
             <View style={styles.recentActivityCard}>
               <View style={styles.activityItem}>
-                <Ionicons name="add-circle" size={20} color="#4CAF50" />
-                <Text style={styles.activityText}>Novo vendedor cadastrado na <Text style={{fontWeight:'bold'}}>Feira Centro</Text></Text>
+                <Ionicons name="people" size={20} color="#4CAF50" />
+                <Text style={styles.activityText}>Novo vendedor ingressou na <Text style={{fontWeight:'bold'}}>Feira Centro</Text></Text>
               </View>
               <View style={styles.activityItem}>
-                <Ionicons name="cart" size={20} color="#2196F3" />
-                <Text style={styles.activityText}>Reserva confirmada: <Text style={{fontWeight:'bold'}}>#A829 - R$ 45,90</Text></Text>
+                <Ionicons name="basket" size={20} color="#2196F3" />
+                <Text style={styles.activityText}>Cliente João fez sua primeira reserva!</Text>
               </View>
             </View>
           </View>
@@ -145,7 +174,7 @@ export default function DashboardScreen() {
           /* --- DASHBOARD OPERACIONAL PARA VENDEDOR --- */
           <View style={styles.sellerContent}>
             
-            {!user?.cadastro_completo && (
+            {user?.tipo?.toUpperCase() === 'CLIENTE' && (
               <TouchableOpacity 
                 style={styles.incompleteBanner}
                 onPress={() => router.push('/cadastro-vendedor')}
@@ -168,13 +197,13 @@ export default function DashboardScreen() {
               <Text style={styles.logoText}>uitanda.com</Text>
             </View>
 
-            <View style={[styles.menuContainer, !user?.cadastro_completo && { opacity: 0.4 }]}>
+            <View style={[styles.menuContainer, user?.tipo?.toUpperCase() === 'CLIENTE' && { opacity: 0.4 }]}>
               {sellerMenuItems.map((item, index) => (
                 <TouchableOpacity 
                   key={index}
                   style={[styles.menuButton, { backgroundColor: item.color }]}
                   onPress={() => {
-                    if (!user?.cadastro_completo) {
+                    if (user?.tipo?.toUpperCase() === 'CLIENTE') {
                       Alert.alert('Ação Bloqueada', 'Você precisa completar seu cadastro de vendedor antes de acessar esta funcionalidade.');
                       return;
                     }
@@ -182,7 +211,7 @@ export default function DashboardScreen() {
                   }}
                 >
                   <Text style={styles.menuButtonText}>{item.label}</Text>
-                  {item.badge && user?.cadastro_completo && (
+                  {item.badge && user?.tipo?.toUpperCase() === 'VENDEDOR' && (
                     <View style={styles.badge}>
                       <Text style={styles.badgeText}>{item.badge}</Text>
                     </View>
@@ -262,6 +291,10 @@ const styles = StyleSheet.create({
   statCard: { backgroundColor: '#FFF', width: '31%', padding: 15, borderRadius: 12, alignItems: 'center', elevation: 2 },
   statValue: { fontSize: 16, fontWeight: 'bold', color: '#2E7D32' },
   statLabel: { fontSize: 10, color: '#666', marginTop: 4, textAlign: 'center' },
+  quickActionsGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 25 },
+  quickActionBtn: { backgroundColor: '#FFF', width: '31%', paddingVertical: 12, borderRadius: 12, alignItems: 'center', elevation: 2 },
+  quickActionText: { fontSize: 11, fontWeight: 'bold', color: '#444', marginTop: 6 },
+  
   adminMenuGrid: { gap: 12, marginBottom: 25 },
   adminMenuBtn: { 
     backgroundColor: '#FFF', 
