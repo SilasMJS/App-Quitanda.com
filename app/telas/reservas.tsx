@@ -1,50 +1,110 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, FlatList, TouchableOpacity, Modal, ActivityIndicator, Alert, Platform } from 'react-native';
+import { StyleSheet, FlatList, TouchableOpacity, Modal, ActivityIndicator, Alert, Platform, Text, View, Linking, ScrollView } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { Image } from 'expo-image';
-import { Text, View } from '../../components/Themed';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import Constants from 'expo-constants';
 import reservasService, { Pedido } from '../../services/reservas';
+import authService from '../../services/auth';
 
 export default function ReservasScreen() {
   const router = useRouter();
   const [reservas, setReservas] = useState<Pedido[]>([]);
+  const [vendedorNome, setVendedorNome] = useState('Quitanda.com');
   const [loading, setLoading] = useState(true);
   const [processando, setProcessando] = useState(false);
   
   const [modalConfirmarVisible, setModalConfirmarVisible] = useState(false);
   const [modalRecusarVisible, setModalRecusarVisible] = useState(false);
-  const [reservaSelecionada, setReservaSelecionada] = useState<Pedido | null>(null);
+  const [modalDetalhesVisible, setModalDetalhesVisible] = useState(false);
+  const [reservaSelecionada, setReservaSelecionada] = useState<any>(null);
   const [motivoRecusa, setMotivoRecusa] = useState('Item esgotado');
+  const [showMotivosOptions, setShowMotivosOptions] = useState(false);
+
+  const listaMotivos = [
+    'Item esgotado no estoque',
+    'Quantidade insuficiente solicitada',
+    'Fora do horário de funcionamento',
+    'Não consigo atender agora',
+    'Outros'
+  ];
 
   useEffect(() => {
     carregarReservas();
+    authService.getCurrentUser().then(u => {
+      if (u && u.nome) setVendedorNome(u.nome);
+    }).catch(() => {});
   }, []);
 
   const carregarReservas = async () => {
     setLoading(true);
     try {
       const dados = await reservasService.listarRecebidos();
-      setReservas(dados);
+      const ativas = dados.filter(r => r.status === 'PENDENTE'); // AGORA SOMENTE PENDENTES AQUI
+      setReservas(ativas);
     } catch (error) {
-      // Silencia erros de carregamento inicial
       setReservas([]);
     } finally {
       setLoading(false);
     }
   };
 
+  const limparTelefone = (telefone: string) => {
+    if (!telefone) return '';
+    return telefone.replace(/\D/g, '');
+  };
+
+  const abrirWhatsApp = async (telefone: string, mensagem: string) => {
+    const numeroLimpo = limparTelefone(telefone);
+    if (!numeroLimpo) {
+      Alert.alert('Aviso', 'O cliente não possui um número de telefone válido.');
+      return;
+    }
+    const numeroFinal = numeroLimpo.startsWith('55') ? numeroLimpo : `55${numeroLimpo}`;
+    const url = `https://wa.me/${numeroFinal}?text=${encodeURIComponent(mensagem)}`;
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert('Aviso', 'Não foi possível abrir o WhatsApp. O aplicativo está instalado?');
+      }
+    } catch (error) {
+      Alert.alert('Erro', 'Ocorreu um erro ao tentar abrir o WhatsApp.');
+    }
+  };
+
+  const copiarTelefone = async (telefone: string) => {
+    if (!telefone) return;
+    await Clipboard.setStringAsync(telefone);
+    Alert.alert('Copiado', 'Número de telefone copiado com sucesso!');
+  };
+
   const handleConfirmarAcao = async () => {
     if (!reservaSelecionada) return;
-    
     setProcessando(true);
     try {
       await reservasService.aprovar(reservaSelecionada.id);
-      Alert.alert('Sucesso', 'Reserva confirmada com sucesso!');
-      setModalConfirmarVisible(false);
-      carregarReservas();
+      Alert.alert(
+        'Sucesso', 
+        'Reserva confirmada com sucesso!\n\nEla foi enviada para a aba de Pagamentos.\nDeseja avisar o cliente pelo WhatsApp?',
+        [
+          { text: 'Não', style: 'cancel', onPress: () => {
+              setModalConfirmarVisible(false);
+              carregarReservas();
+          } },
+          { text: 'Sim, Avisar', onPress: () => {
+              setModalConfirmarVisible(false);
+              carregarReservas();
+              abrirWhatsApp(
+                reservaSelecionada.cliente_telefone, 
+                `Olá, ${reservaSelecionada.cliente_nome || 'cliente'}! Aqui é ${vendedorNome} da Quitanda.com. Sua reserva #${reservaSelecionada.id.substring(0,8).toUpperCase()} foi APROVADA e os produtos já estão sendo separados. Valor total: R$ ${parseFloat(reservaSelecionada.valor_total.toString()).toFixed(2).replace('.', ',')}. Pode vir buscar!`
+              );
+          } }
+        ]
+      );
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível confirmar a reserva.');
     } finally {
@@ -54,13 +114,27 @@ export default function ReservasScreen() {
 
   const handleRecusarAcao = async () => {
     if (!reservaSelecionada) return;
-
     setProcessando(true);
     try {
       await reservasService.recusar(reservaSelecionada.id, motivoRecusa);
-      Alert.alert('Sucesso', 'Reserva recusada.');
-      setModalRecusarVisible(false);
-      carregarReservas();
+      Alert.alert(
+        'Sucesso', 
+        'Reserva recusada.\n\nDeseja avisar o cliente pelo WhatsApp?',
+        [
+          { text: 'Não', style: 'cancel', onPress: () => {
+              setModalRecusarVisible(false);
+              carregarReservas();
+          } },
+          { text: 'Sim, Avisar', onPress: () => {
+              setModalRecusarVisible(false);
+              carregarReservas();
+              abrirWhatsApp(
+                reservaSelecionada.cliente_telefone, 
+                `Olá, ${reservaSelecionada.cliente_nome || 'cliente'}. Aqui é ${vendedorNome} da Quitanda.com. Infelizmente sua reserva #${reservaSelecionada.id.substring(0,8).toUpperCase()} foi RECUSADA. Motivo: ${motivoRecusa}.`
+              );
+          } }
+        ]
+      );
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível recusar a reserva.');
     } finally {
@@ -69,50 +143,59 @@ export default function ReservasScreen() {
   };
 
   const renderReserva = ({ item }: { item: Pedido }) => (
-    <View style={styles.card}>
+    <TouchableOpacity 
+      style={styles.card} 
+      onPress={() => { setReservaSelecionada(item); setModalDetalhesVisible(true); }}
+      activeOpacity={0.8}
+    >
       <View style={styles.cardHeader}>
-        <Text style={styles.reservaNumero}>ID: #{item.id.substring(0, 8)}</Text>
-        <View style={[styles.statusBadge, { backgroundColor: item.status === 'PENDENTE' ? '#FFB300' : '#40C993' }]}>
+        <Text style={styles.reservaNumero}>ID: #{item.id.substring(0, 8).toUpperCase()}</Text>
+        <View style={[styles.statusBadge, { backgroundColor: '#FFB300' }]}>
           <Text style={styles.statusText}>{item.status}</Text>
         </View>
       </View>
       
       <View style={styles.cardBody}>
         <Text style={styles.clienteNome}>{item.cliente_nome || 'Cliente da Quitanda'}</Text>
-        {item.itens.map((i, index) => (
-          <Text key={index} style={styles.itensList}>
-            {i.quantidade}x {i.produto_nome || 'Produto'}
-          </Text>
+        {item.itens?.map((prod: any, idx: number) => (
+          <Text key={idx} style={styles.itensList}>{prod.quantidade}x {prod.produto_nome || 'Produto'}</Text>
         ))}
-        <Text style={styles.totalText}>
-          R$ {(item.valor_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-        </Text>
+        <Text style={styles.totalText}>R$ {parseFloat(item.valor_total.toString()).toFixed(2).replace('.', ',')}</Text>
       </View>
 
-      {item.status === 'PENDENTE' && (
-        <View style={styles.cardActions}>
-          <TouchableOpacity 
-            style={styles.btnConfirmar}
-            onPress={() => { setReservaSelecionada(item); setModalConfirmarVisible(true); }}
-          >
-            <Text style={styles.btnText}>CONFIRMAR</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.btnRecusar}
-            onPress={() => { setReservaSelecionada(item); setModalRecusarVisible(true); }}
-          >
-            <Text style={styles.btnText}>RECUSAR</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-    </View>
+      <View style={styles.verDetalhesContainer}>
+        <Ionicons name="expand" size={14} color="#FFF" />
+        <Text style={styles.verDetalhesText}>Toque para ver detalhes</Text>
+      </View>
+
+      <View style={styles.cardActions}>
+        <TouchableOpacity 
+          style={styles.btnConfirmar}
+          onPress={() => { setReservaSelecionada(item); setModalConfirmarVisible(true); }}
+        >
+          <Text style={styles.btnText}>CONFIRMAR</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.btnRecusar}
+          onPress={() => { setReservaSelecionada(item); setModalRecusarVisible(true); }}
+        >
+          <Text style={styles.btnText}>RECUSAR</Text>
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
   );
 
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
       <View style={styles.topHeader}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backButton} onPress={() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/telas/dashboard');
+          }
+        }}>
           <Ionicons name="arrow-back" size={26} color="#2E7D32" />
         </TouchableOpacity>
         
@@ -129,7 +212,7 @@ export default function ReservasScreen() {
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.title}>Minhas Reservas</Text>
+        <Text style={styles.title}>Novas Reservas</Text>
 
         {loading ? (
           <ActivityIndicator size="large" color="#2E7D32" style={{ marginTop: 50 }} />
@@ -143,9 +226,9 @@ export default function ReservasScreen() {
             ListEmptyComponent={
               <View style={{ alignItems: 'center', marginTop: 100, backgroundColor: 'transparent' }}>
                 <Ionicons name="cart-outline" size={80} color="#E0E0E0" />
-                <Text style={{ color: '#999', fontSize: 18, fontWeight: 'bold', marginTop: 15 }}>Nenhuma reserva pendente</Text>
+                <Text style={{ color: '#999', fontSize: 18, fontWeight: 'bold', marginTop: 15 }}>Nenhuma nova reserva</Text>
                 <Text style={{ color: '#CCC', fontSize: 14, textAlign: 'center', marginTop: 5, paddingHorizontal: 40 }}>
-                  Quando os clientes fizerem reservas na sua quitanda, elas aparecerão aqui.
+                  Aguardando os clientes fazerem pedidos...
                 </Text>
               </View>
             }
@@ -159,7 +242,7 @@ export default function ReservasScreen() {
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>CONFIRMAR RESERVA</Text>
-              <Text style={styles.modalSubtitle}>Deseja confirmar este pedido?</Text>
+              <Text style={styles.modalSubtitle}>Deseja confirmar este pedido e preparar os produtos para retirada?</Text>
               
               <TouchableOpacity 
                 style={[styles.btnModalAcao, processando && { opacity: 0.7 }]}
@@ -179,26 +262,104 @@ export default function ReservasScreen() {
         {/* Modal MOTIVO DE RECUSA */}
         <Modal animationType="fade" transparent={true} visible={modalRecusarVisible}>
           <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>MOTIVO DE RECUSA</Text>
-              <Text style={styles.modalSubtitle}>Selecione o motivo do cancelamento</Text>
+            <View style={[styles.modalContent, { paddingBottom: 10 }]}>
+              <Text style={styles.modalTitle}>MOTIVO DA RECUSA</Text>
               
-              <TouchableOpacity style={styles.dropdown} onPress={() => Alert.alert('Motivos', 'Item esgotado\nEndereço fora da área\nOutros')}>
-                <Text style={styles.dropdownText}>{motivoRecusa}</Text>
-                <Ionicons name="caret-down" size={16} color="#FFF" />
-              </TouchableOpacity>
+              {!showMotivosOptions ? (
+                <>
+                  <Text style={styles.modalSubtitle}>Selecione o motivo para informar ao cliente:</Text>
+                  <TouchableOpacity style={styles.dropdown} onPress={() => setShowMotivosOptions(true)}>
+                    <Text style={styles.dropdownText}>{motivoRecusa}</Text>
+                    <Ionicons name="caret-down" size={16} color="#FFF" />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity 
+                    style={[styles.btnModalAcao, { backgroundColor: '#C62828' }, processando && { opacity: 0.7 }]}
+                    onPress={handleRecusarAcao}
+                    disabled={processando}
+                  >
+                    {processando ? <ActivityIndicator color="#FFF" /> : <Text style={styles.btnModalText}>CONFIRMAR RECUSA</Text>}
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <View style={{ width: '100%', maxHeight: 200, marginBottom: 15 }}>
+                  <ScrollView showsVerticalScrollIndicator={true}>
+                    {listaMotivos.map((motivo, idx) => (
+                      <TouchableOpacity 
+                        key={idx} 
+                        style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#0A4D2E' }}
+                        onPress={() => { setMotivoRecusa(motivo); setShowMotivosOptions(false); }}
+                      >
+                        <Text style={{ color: '#FFF', fontSize: 16 }}>{motivo}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
 
               <TouchableOpacity 
-                style={[styles.btnModalAcao, { backgroundColor: '#C62828' }, processando && { opacity: 0.7 }]}
-                onPress={handleRecusarAcao}
-                disabled={processando}
+                style={styles.btnModalVoltar} 
+                onPress={() => { 
+                  if (showMotivosOptions) setShowMotivosOptions(false); 
+                  else setModalRecusarVisible(false); 
+                }}
               >
-                {processando ? <ActivityIndicator color="#FFF" /> : <Text style={styles.btnModalText}>CONFIRMAR RECUSA</Text>}
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.btnModalVoltar} onPress={() => setModalRecusarVisible(false)}>
                 <Text style={styles.btnModalVoltarText}>VOLTAR</Text>
               </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Modal DETALHES */}
+        <Modal animationType="slide" transparent={true} visible={modalDetalhesVisible}>
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { backgroundColor: '#FFF', alignItems: 'stretch' }]}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15, borderBottomWidth: 1, borderBottomColor: '#F0F0F0', paddingBottom: 15 }}>
+                <Text style={{ fontSize: 20, fontWeight: '900', color: '#2C3E50' }}>Detalhes da Reserva</Text>
+                <TouchableOpacity onPress={() => setModalDetalhesVisible(false)}>
+                  <Ionicons name="close" size={24} color="#333" />
+                </TouchableOpacity>
+              </View>
+
+              {reservaSelecionada && (
+                <View style={{ marginBottom: 20 }}>
+                  <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 5, color: '#333' }}>Cliente: {reservaSelecionada.cliente_nome || 'Não informado'}</Text>
+                  
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                    <Text style={{ fontSize: 14, color: '#666', marginRight: 10 }}>
+                      Telefone: {reservaSelecionada.cliente_telefone || 'Não informado'}
+                    </Text>
+                    {reservaSelecionada.cliente_telefone && (
+                      <View style={{ flexDirection: 'row' }}>
+                        <TouchableOpacity 
+                          style={{ padding: 6, backgroundColor: '#E0F2F1', borderRadius: 6, marginRight: 8 }}
+                          onPress={() => copiarTelefone(reservaSelecionada.cliente_telefone)}
+                        >
+                          <Ionicons name="copy-outline" size={18} color="#008966" />
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                          style={{ padding: 6, backgroundColor: '#25D366', borderRadius: 6, flexDirection: 'row', alignItems: 'center' }}
+                          onPress={() => abrirWhatsApp(reservaSelecionada.cliente_telefone, `Olá, ${reservaSelecionada.cliente_nome || ''}! Aqui é ${vendedorNome} da Quitanda.com. Gostaria de falar sobre sua reserva #${reservaSelecionada.id.substring(0,8).toUpperCase()}.`)}
+                        >
+                          <Ionicons name="logo-whatsapp" size={18} color="#FFF" />
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+
+                  <Text style={{ fontSize: 14, marginBottom: 5, color: '#666' }}>Status: {reservaSelecionada.status}</Text>
+                  <Text style={{ fontSize: 14, marginBottom: 5, color: '#666' }}>Pagamento: {reservaSelecionada.forma_pagamento || 'Não informado'}</Text>
+                  {reservaSelecionada.data_retirada && <Text style={{ fontSize: 14, marginBottom: 5, color: '#666' }}>Retirada: {new Date(reservaSelecionada.data_retirada).toLocaleString('pt-BR')}</Text>}
+                  {reservaSelecionada.observacao && <Text style={{ fontSize: 14, marginBottom: 15, color: '#666' }}>Obs: {reservaSelecionada.observacao}</Text>}
+                  
+                  <Text style={{ fontSize: 16, fontWeight: 'bold', marginTop: 10, marginBottom: 10, color: '#333' }}>Itens ({reservaSelecionada.itens?.length || 0})</Text>
+                  {reservaSelecionada.itens?.map((item: any, idx: number) => (
+                    <Text key={idx} style={{ fontSize: 15, marginBottom: 6, color: '#555' }}>- {item.quantidade}x {item.produto_nome}</Text>
+                  ))}
+                  
+                  <Text style={{ fontSize: 20, fontWeight: '900', marginTop: 15, textAlign: 'right', color: '#2E7D32' }}>Total: R$ {parseFloat(reservaSelecionada.valor_total.toString()).toFixed(2).replace('.', ',')}</Text>
+                </View>
+              )}
             </View>
           </View>
         </Modal>
@@ -234,14 +395,17 @@ const styles = StyleSheet.create({
   reservaNumero: { color: '#FFF', fontSize: 12, fontWeight: '700' },
   statusBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
   statusText: { color: '#FFF', fontSize: 10, fontWeight: 'bold' },
-  cardBody: { backgroundColor: 'transparent', marginBottom: 15 },
+  cardBody: { backgroundColor: 'transparent', marginBottom: 10 },
   clienteNome: { color: '#FFF', fontSize: 18, fontWeight: '900', marginBottom: 10 },
   itensList: { color: '#FFF', fontSize: 14, fontWeight: '500', marginBottom: 4 },
   totalText: { color: '#FFF', fontSize: 16, fontWeight: '900', marginTop: 10, textAlign: 'right' },
-  cardActions: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: 'transparent' },
+  verDetalhesContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginVertical: 10 },
+  verDetalhesText: { color: '#FFF', fontSize: 12, fontWeight: '700', marginLeft: 4, opacity: 0.9 },
+  cardActions: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: 'transparent', marginTop: 5 },
   btnConfirmar: { backgroundColor: '#40C993', width: '48%', paddingVertical: 10, borderRadius: 6, alignItems: 'center' },
   btnRecusar: { backgroundColor: '#C62828', width: '48%', paddingVertical: 10, borderRadius: 6, alignItems: 'center' },
   btnText: { color: '#FFF', fontSize: 12, fontWeight: '900' },
+  
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   modalContent: { backgroundColor: '#008966', width: '100%', borderRadius: 15, padding: 25, alignItems: 'center' },
   modalTitle: { color: '#FFF', fontSize: 20, fontWeight: '900', marginBottom: 15 },

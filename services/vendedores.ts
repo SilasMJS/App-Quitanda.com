@@ -19,6 +19,14 @@ export interface Endereco {
   longitude?: number;
 }
 
+export interface AtualizarVendedor {
+  comunidade_id?: string;
+  nome_fantasia?: string;
+  descricao?: string;
+  chave_pix?: string;
+  imagem_url?: string;
+}
+
 const vendedoresService = {
   cadastrarEndereco: async (endereco: Endereco) => {
     try {
@@ -36,6 +44,16 @@ const vendedoresService = {
       return response.data;
     } catch (error) {
       console.error('Erro ao criar perfil vendedor:', error);
+      throw error;
+    }
+  },
+
+  atualizarPerfilVendedor: async (dados: AtualizarVendedor) => {
+    try {
+      const response = await api.put('/vendedores/me', dados);
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao atualizar perfil vendedor:', error);
       throw error;
     }
   },

@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Alert, View as RNView } from 'react-native';
-import { useRouter } from 'expo-router';
+import React, { useEffect, useState, useCallback } from 'react';
+import { StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Alert, View as RNView, Modal, Platform } from 'react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
 import { Text, View } from '../../../components/Themed';
 import { StatusBar } from 'expo-status-bar';
@@ -12,10 +12,15 @@ export default function AdminUsuariosScreen() {
   const router = useRouter();
   const [usuarios, setUsuarios] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  const [usuarioSelecionado, setUsuarioSelecionado] = useState<any>(null);
+  const [mudandoTipo, setMudandoTipo] = useState(false);
 
-  useEffect(() => {
-    loadUsuarios();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadUsuarios();
+    }, [])
+  );
 
   const loadUsuarios = async () => {
     setLoading(true);
@@ -23,9 +28,26 @@ export default function AdminUsuariosScreen() {
       const response = await api.get('/usuarios/');
       setUsuarios(response.data);
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível carregar os usuários.');
+      if (Platform.OS === 'web') window.alert('Erro ao carregar usuários.');
+      else Alert.alert('Erro', 'Não foi possível carregar os usuários.');
     } finally {
       setLoading(false);
+    }
+  };
+  
+  const handleMudarTipo = async (novoTipo: string) => {
+    if (!usuarioSelecionado) return;
+    setMudandoTipo(true);
+    try {
+      await api.put(`/usuarios/${usuarioSelecionado.id}/tipo`, { tipo: novoTipo });
+      setUsuarioSelecionado(null);
+      loadUsuarios();
+    } catch (error: any) {
+      const msg = error.response?.data?.detail || 'Erro ao mudar perfil.';
+      if (Platform.OS === 'web') window.alert(msg);
+      else Alert.alert('Erro', msg);
+    } finally {
+      setMudandoTipo(false);
     }
   };
 
@@ -36,33 +58,23 @@ export default function AdminUsuariosScreen() {
   };
 
   const renderUsuario = ({ item }: { item: any }) => (
-    <RNView style={styles.card}>
+    <TouchableOpacity 
+      style={styles.card}
+      onPress={() => setUsuarioSelecionado(item)}
+    >
       <RNView style={[styles.colorBar, { backgroundColor: getRoleColor(item.tipo) }]} />
       <RNView style={styles.cardContent}>
         <Text style={styles.nome}>{item.nome}</Text>
         <Text style={styles.telefone}>{item.telefone}</Text>
         <RNView style={styles.statusRow}>
           <RNView style={[styles.statusDot, { backgroundColor: item.ativo ? '#4CAF50' : '#F44336' }]} />
-          <Text style={styles.statusText}>{item.tipo?.toUpperCase()} - {item.ativo ? 'Ativo' : 'Inativo'}</Text>
+          <Text style={styles.statusText}>{item.tipo?.toUpperCase() === 'CLIENTE' ? 'USUÁRIO' : item.tipo?.toUpperCase()} - {item.ativo ? 'Ativo' : 'Inativo'}</Text>
         </RNView>
       </RNView>
-      {item.tipo?.toUpperCase() === 'CLIENTE' && (
-        <TouchableOpacity 
-          style={styles.editButton}
-          onPress={() => {
-            Alert.alert('Promover Usuário', `Deseja transformar ${item.nome} em um Vendedor?`, [
-              { text: 'Cancelar', style: 'cancel' },
-              { text: 'Sim, Cadastrar', onPress: () => router.push({
-                pathname: '/telas/admin/novo-vendedor',
-                params: { usuario_id: item.id, usuario_nome: item.nome }
-              } as any)}
-            ]);
-          }}
-        >
-          <Ionicons name="storefront-outline" size={24} color="#2E7D32" />
-        </TouchableOpacity>
-      )}
-    </RNView>
+      <RNView style={styles.editIconContainer}>
+        <Ionicons name="settings-outline" size={24} color="#666" />
+      </RNView>
+    </TouchableOpacity>
   );
 
   return (
@@ -70,14 +82,14 @@ export default function AdminUsuariosScreen() {
       <StatusBar style="dark" />
       
       <RNView style={styles.topHeader}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.canGoBack() ? router.back() : router.replace('/telas/dashboard')}>
           <Ionicons name="arrow-back" size={26} color="#2E7D32" />
         </TouchableOpacity>
         
-        <RNView style={styles.logoRow}>
+        <TouchableOpacity style={styles.logoRow} onPress={() => router.replace('/telas/dashboard')}>
           <Image source={require('../../../assets/images/logo.svg')} style={{ width: 35, height: 35 }} contentFit="contain" />
           <Text style={styles.logoText}>uitanda.com</Text>
-        </RNView>
+        </TouchableOpacity>
         
         <RNView style={{ width: 40 }} />
       </RNView>
@@ -110,6 +122,65 @@ export default function AdminUsuariosScreen() {
           />
         )}
       </RNView>
+      
+      {/* Modal de Gestão do Perfil */}
+      <Modal visible={!!usuarioSelecionado} transparent={true} animationType="slide">
+        <RNView style={styles.modalOverlay}>
+          <RNView style={styles.modalContent}>
+            {usuarioSelecionado && (
+              <>
+                <Text style={styles.modalTitle}>Gerenciar Usuário</Text>
+                <Text style={styles.modalSubtitle}>{usuarioSelecionado.nome}</Text>
+                
+                <Text style={styles.modalSectionTitle}>Mudar Perfil Para:</Text>
+                
+                  {usuarioSelecionado.tipo !== 'cliente' && (
+                  <TouchableOpacity 
+                    style={[styles.roleBtn, { borderColor: '#1976D2' }]} 
+                    onPress={() => handleMudarTipo('cliente')}
+                    disabled={mudandoTipo}
+                  >
+                    <Ionicons name="person-outline" size={20} color="#1976D2" />
+                    <Text style={[styles.roleBtnText, { color: '#1976D2' }]}>Tornar USUÁRIO</Text>
+                  </TouchableOpacity>
+                )}
+                
+                {usuarioSelecionado.tipo !== 'vendedor' && (
+                  <TouchableOpacity 
+                    style={[styles.roleBtn, { borderColor: '#2E7D32' }]} 
+                    onPress={() => {
+                      setUsuarioSelecionado(null);
+                      router.push({
+                        pathname: '/telas/admin/novo-vendedor',
+                        params: { usuario_id: usuarioSelecionado.id, usuario_nome: usuarioSelecionado.nome }
+                      } as any);
+                    }}
+                    disabled={mudandoTipo}
+                  >
+                    <Ionicons name="storefront-outline" size={20} color="#2E7D32" />
+                    <Text style={[styles.roleBtnText, { color: '#2E7D32' }]}>Tornar VENDEDOR</Text>
+                  </TouchableOpacity>
+                )}
+                
+                {usuarioSelecionado.tipo !== 'admin' && (
+                  <TouchableOpacity 
+                    style={[styles.roleBtn, { borderColor: '#FBC02D' }]} 
+                    onPress={() => handleMudarTipo('admin')}
+                    disabled={mudandoTipo}
+                  >
+                    <Ionicons name="shield-checkmark-outline" size={20} color="#FBC02D" />
+                    <Text style={[styles.roleBtnText, { color: '#FBC02D' }]}>Tornar ADMIN</Text>
+                  </TouchableOpacity>
+                )}
+                
+                <TouchableOpacity style={styles.cancelBtn} onPress={() => setUsuarioSelecionado(null)}>
+                  <Text style={styles.cancelBtnText}>FECHAR</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </RNView>
+        </RNView>
+      </Modal>
     </RNView>
   );
 }
@@ -162,6 +233,27 @@ const styles = StyleSheet.create({
   statusRow: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
   statusDot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
   statusText: { fontSize: 12, color: '#888', fontWeight: 'bold' },
-  editButton: { padding: 15, justifyContent: 'center' },
-  emptyText: { textAlign: 'center', color: '#999', marginTop: 50, fontSize: 16 }
+  editIconContainer: { justifyContent: 'center', padding: 15 },
+  emptyText: { textAlign: 'center', color: '#999', marginTop: 50, fontSize: 16 },
+  
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
+  modalContent: { backgroundColor: '#FFF', padding: 25, borderRadius: 15 },
+  modalTitle: { fontSize: 20, fontWeight: 'bold', textAlign: 'center' },
+  modalSubtitle: { fontSize: 16, color: '#666', textAlign: 'center', marginBottom: 20 },
+  modalSectionTitle: { fontSize: 14, fontWeight: 'bold', color: '#333', marginBottom: 15 },
+  
+  roleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 15,
+    borderWidth: 2,
+    borderRadius: 10,
+    marginBottom: 10,
+    gap: 10,
+  },
+  roleBtnText: { fontWeight: 'bold', fontSize: 16 },
+  
+  cancelBtn: { marginTop: 15, padding: 15, alignItems: 'center' },
+  cancelBtnText: { color: '#666', fontWeight: 'bold', fontSize: 16 }
 });

@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Alert, View as RNView } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
 import { Text, View } from '../../../components/Themed';
 import { StatusBar } from 'expo-status-bar';
@@ -13,9 +13,11 @@ export default function AdminComunidadesScreen() {
   const [comunidades, setComunidades] = useState<Comunidade[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadComunidades();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadComunidades();
+    }, [])
+  );
 
   const loadComunidades = async () => {
     setLoading(true);
@@ -54,14 +56,14 @@ export default function AdminComunidadesScreen() {
       <StatusBar style="dark" />
       
       <RNView style={styles.topHeader}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.canGoBack() ? router.back() : router.replace('/telas/dashboard')}>
           <Ionicons name="arrow-back" size={26} color="#2E7D32" />
         </TouchableOpacity>
         
-        <RNView style={styles.logoRow}>
+        <TouchableOpacity style={styles.logoRow} onPress={() => router.replace('/telas/dashboard')}>
           <Image source={require('../../../assets/images/logo.svg')} style={{ width: 35, height: 35 }} contentFit="contain" />
           <Text style={styles.logoText}>uitanda.com</Text>
-        </RNView>
+        </TouchableOpacity>
         
         <RNView style={{ width: 40 }} />
       </RNView>

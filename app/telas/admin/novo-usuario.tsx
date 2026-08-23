@@ -44,14 +44,28 @@ export default function AdminNovoUsuarioScreen() {
       await api.post('/usuarios/', {
         nome,
         telefone: celularLimpo,
-        email: email || undefined,
+        email: email || null,
         password: senha
       });
-      Alert.alert('Sucesso', 'Usuário criado com sucesso!', [
-        { text: 'OK', onPress: () => router.back() }
-      ]);
+      
+      if (Platform.OS === 'web') {
+        window.alert('Usuário criado com sucesso!');
+        router.replace('/telas/admin/usuarios');
+      } else {
+        Alert.alert('Sucesso', 'Usuário criado com sucesso!', [
+          { text: 'OK', onPress: () => router.replace('/telas/admin/usuarios') }
+        ]);
+      }
     } catch (error: any) {
-      Alert.alert('Erro', error.response?.data?.detail?.[0]?.msg || 'Falha ao criar usuário.');
+      const msg = typeof error.response?.data?.detail === 'string' 
+        ? error.response.data.detail 
+        : error.response?.data?.detail?.[0]?.msg || 'Falha ao criar usuário.';
+      
+      if (Platform.OS === 'web') {
+        window.alert(`Erro: ${msg}`);
+      } else {
+        Alert.alert('Erro', msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -62,14 +76,14 @@ export default function AdminNovoUsuarioScreen() {
       <StatusBar style="dark" />
       
       <View style={styles.topHeader}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.canGoBack() ? router.back() : router.replace('/telas/admin/usuarios')}>
           <Ionicons name="arrow-back" size={26} color="#2E7D32" />
         </TouchableOpacity>
         
-        <View style={styles.logoRow}>
+        <TouchableOpacity style={styles.logoRow} onPress={() => router.replace('/telas/dashboard')}>
           <Image source={require('../../../assets/images/logo.svg')} style={{ width: 35, height: 35 }} contentFit="contain" />
           <Text style={styles.logoText}>uitanda.com</Text>
-        </View>
+        </TouchableOpacity>
         
         <View style={{ width: 40 }} />
       </View>

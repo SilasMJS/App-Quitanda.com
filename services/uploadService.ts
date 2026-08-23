@@ -1,5 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
 import api from './api';
+import { Platform } from 'react-native';
+import storage from './storage';
 
 export const pickImage = async (): Promise<string | null> => {
   const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -10,7 +12,7 @@ export const pickImage = async (): Promise<string | null> => {
   }
 
   const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    mediaTypes: ['images'],
     allowsEditing: true,
     aspect: [1, 1], // Força proporção quadrada ideal para avatares e produtos
     quality: 0.7, // Comprime a imagem para não sobrecarregar o servidor
@@ -32,24 +34,41 @@ export const uploadImage = async (uri: string, tipo: 'comunidades' | 'vendedores
     const type = match ? `image/${match[1]}` : `image/jpeg`;
 
     const formData = new FormData();
-    // O react-native FormData aceita append com objetos simulando arquivos
-    formData.append('file', {
-      uri: uri,
-      name: filename,
-      type: type,
-    } as any);
-
-    // Envia como multipart/form-data
-    const response = await api.post(`/upload/${tipo}`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-
-    // O backend retorna o path relativo (ex: /storage/vendedores/xyz.jpg)
-    // Precisamos concatenar com a baseURL da API para o frontend renderizar
+    
     const baseUrl = api.defaults.baseURL;
-    return `${baseUrl}${response.data.url}`;
+
+    if (Platform.OS === 'web') {
+      const fetchResponse = await fetch(uri);
+      const blob = await fetchResponse.blob();
+      formData.append('file', blob, filename);
+      
+      const token = await storage.get('access_token');
+      const res = await fetch(`${baseUrl}/upload/${tipo}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+      
+      if (!res.ok) throw new Error('Upload failed');
+      const data = await res.json();
+      return `${baseUrl}${data.url}`;
+    } else {
+      formData.append('file', {
+        uri: uri,
+        name: filename,
+        type: type,
+      } as any);
+
+      const response = await api.post(`/upload/${tipo}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      return `${baseUrl}${response.data.url}`;
+    }
 
   } catch (error) {
     console.error('Erro ao enviar imagem', error);

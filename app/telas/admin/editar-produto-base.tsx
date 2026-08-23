@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TextInput, Alert, ActivityIndicator, View as RNView } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import { Text, View } from '../../../components/Themed';
 import { StatusBar } from 'expo-status-bar';
@@ -11,6 +11,7 @@ import Constants from 'expo-constants';
 
 export default function AdminNovoProdutoBaseScreen() {
   const router = useRouter();
+  const { id } = useLocalSearchParams();
   
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
@@ -24,13 +25,33 @@ export default function AdminNovoProdutoBaseScreen() {
   const [categorias, setCategorias] = useState<any[]>([]);
 
   useEffect(() => {
+    async function carregarProduto() {
+      if (!id) return;
+      try {
+        const res = await api.get(`/produtos/${id}`);
+        const p = res.data;
+        setNome(p.nome);
+        setDescricao(p.descricao);
+        setCategoria(p.categoria_id || p.categoria);
+        setUnidadeMedida(p.tipo_unidade);
+        setImagemUrl(p.imagem_url || '');
+      } catch (error) {
+        Alert.alert('Erro', 'Não foi possível carregar o produto.');
+        router.back();
+      }
+    }
+    carregarProduto();
+  }, [id]);
+
+  useEffect(() => {
     async function carregarCategorias() {
       try {
         const res = await api.get('/categorias');
         const formatted = res.data.map((c: any) => ({ label: c.nome, value: c.id }));
         setCategorias(formatted);
+        // We only set default if categoria is not already set by carregarProduto
         if (formatted.length > 0 && categoria === 'HORTALICA') {
-          setCategoria(formatted[0].value); // Select first by default
+          setCategoria(formatted[0].value);
         }
       } catch (error) {
         console.log('Erro ao carregar categorias', error);
@@ -38,6 +59,23 @@ export default function AdminNovoProdutoBaseScreen() {
     }
     carregarCategorias();
   }, []);
+
+  const handleDelete = () => {
+    Alert.alert('Remover Produto', 'Tem certeza que deseja apagar este produto do catálogo?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Apagar', style: 'destructive', onPress: async () => {
+          setLoading(true);
+          try {
+            await api.delete(`/produtos/${id}`);
+            if (Platform.OS === 'web') window.alert('Produto apagado!');
+            router.back();
+          } catch(e) {
+            Alert.alert('Erro', 'Não foi possível apagar o produto.');
+            setLoading(false);
+          }
+      }}
+    ]);
+  };
 
   const unidades = [
     { label: 'Unidade', value: 'unidade' },
@@ -63,7 +101,7 @@ export default function AdminNovoProdutoBaseScreen() {
         finalImageUrl = `https://ui-avatars.com/api/?name=${nameStr}&background=0288D1&color=fff&size=256`;
       }
 
-      await api.post('/produtos/', {
+      await api.put(`/produtos/${id}`, {
         nome,
         descricao,
         categoria_id: categoria,
@@ -72,8 +110,8 @@ export default function AdminNovoProdutoBaseScreen() {
       });
 
       if (Platform.OS === 'web') {
-        window.alert('Produto cadastrado no catálogo global com sucesso!');
-        router.replace('/telas/admin/produtos-base');
+        window.alert('Produto atualizado com sucesso!');
+        router.back();
       } else {
         Alert.alert('Sucesso', 'Produto cadastrado no catálogo global!', [
           { text: 'OK', onPress: () => router.replace('/telas/admin/produtos-base') }
@@ -121,7 +159,7 @@ export default function AdminNovoProdutoBaseScreen() {
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <Text style={styles.title}>Novo Produto Base</Text>
+          <Text style={styles.title}>Editar Produto Base</Text>
           <Text style={styles.subtitle}>Adicione um produto padronizado para os vendedores selecionarem.</Text>
           
           <View style={styles.form}>

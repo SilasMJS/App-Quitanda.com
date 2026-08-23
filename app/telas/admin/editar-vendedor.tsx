@@ -10,7 +10,9 @@ import { pickImage, uploadImage } from '../../../services/uploadService';
 import comunidadesService, { Comunidade } from '../../../services/comunidades';
 import Constants from 'expo-constants';
 
-export default function AdminNovoVendedorScreen() {
+export default function AdminEditarVendedorScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const [loadingDados, setLoadingDados] = useState(true);
   const router = useRouter();
   const params = useLocalSearchParams();
   
@@ -43,10 +45,50 @@ export default function AdminNovoVendedorScreen() {
 
   useEffect(() => {
     loadComunidades();
-    if (!usuario_id) {
+    if (!selectedUsuarioId) {
       loadUsuariosClientes();
     }
   }, []);
+
+  useEffect(() => {
+    if (!id) return;
+    const fetchVendedor = async () => {
+      try {
+        const res = await api.get('/vendedores/');
+        const vendedor = res.data.find((v: any) => v.id === id);
+        if (vendedor) {
+          setSelectedUsuarioId(vendedor.usuario_id);
+          const resUsers = await api.get('/usuarios/');
+          const user = resUsers.data.find((u: any) => u.id === vendedor.usuario_id);
+          if (user) setSelectedUsuarioNome(user.nome);
+
+          setNomeFantasia(vendedor.nome_fantasia);
+          setDescricao(vendedor.descricao || '');
+          setChavePix(vendedor.chave_pix);
+          setImagemLocal(vendedor.imagem_url || '');
+          setComunidadeId(vendedor.comunidade_id);
+          
+          try {
+             const resAddr = await api.get(`/usuarios/${vendedor.usuario_id}/endereco`);
+             if (resAddr.data) {
+               setCep(resAddr.data.cep || '');
+               setEstado(resAddr.data.estado || '');
+               setCidade(resAddr.data.cidade || '');
+               setBairro(resAddr.data.bairro || '');
+               setRua(resAddr.data.rua || '');
+               setNumero(resAddr.data.numero || '');
+             }
+          } catch(e) {}
+        }
+      } catch (err) {
+        Alert.alert('Erro', 'Não foi possível carregar o vendedor.');
+      } finally {
+        setLoadingDados(false);
+      }
+    };
+    fetchVendedor();
+  }, [id]);
+
 
   const loadUsuariosClientes = async () => {
     try {
@@ -125,7 +167,7 @@ export default function AdminNovoVendedorScreen() {
         longitude: 0
       });
 
-      await api.post('/vendedores/', {
+      await api.put(`/vendedores/${id}`, {
         usuario_id: selectedUsuarioId,
         nome_fantasia: nomeFantasia,
         descricao: descricao,
@@ -159,6 +201,8 @@ export default function AdminNovoVendedorScreen() {
 
   const comunidadeSelecionada = comunidades.find(c => c.id === comunidadeId);
 
+  if (loadingDados) return <View style={{flex: 1, justifyContent: 'center'}}><ActivityIndicator size="large" color="#2E7D32" /></View>;
+
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
@@ -176,21 +220,21 @@ export default function AdminNovoVendedorScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <Text style={styles.title}>Promover Vendedor</Text>
-          {!usuario_id ? (
+          <Text style={styles.title}>Editar Vendedor</Text>
+          {!selectedUsuarioId ? (
             <View style={{ marginBottom: 20 }}>
               <Text style={styles.inputLabel}>Selecione o Usuário (Cliente) *</Text>
               <TouchableOpacity 
                 style={styles.inputContainer} 
-                onPress={() => setModalUsuarioVisible(true)}
+                onPress={() => {}}
               >
                 <Ionicons name="person-outline" size={20} color="#666" style={styles.inputIcon} />
                 <Text style={[styles.input, { color: selectedUsuarioId ? '#333' : '#999' }]}>
-                  {selectedUsuarioId ? selectedUsuarioNome : 'Toque para escolher...'}
+                  {selectedUsuarioId ? selectedUsuarioNome : 'Carregando...'}
                 </Text>
-                <Ionicons name="chevron-down" size={20} color="#666" />
+                
               </TouchableOpacity>
             </View>
           ) : (
@@ -250,7 +294,7 @@ export default function AdminNovoVendedorScreen() {
               <Text style={[styles.input, { color: comunidadeSelecionada ? '#333' : '#999' }]}>
                 {comunidadeSelecionada ? comunidadeSelecionada.nome : 'Selecione uma comunidade'}
               </Text>
-              <Ionicons name="chevron-down" size={20} color="#666" />
+              
             </TouchableOpacity>
 
             <Text style={styles.inputLabel}>Descrição Curta (Opcional)</Text>
@@ -330,7 +374,7 @@ export default function AdminNovoVendedorScreen() {
               {loading ? (
                 <ActivityIndicator color="#FFF" />
               ) : (
-                <Text style={styles.saveButtonText}>CADASTRAR VENDEDOR</Text>
+                <Text style={styles.saveButtonText}>SALVAR ALTERAÇÕES</Text>
               )}
             </TouchableOpacity>
           </View>

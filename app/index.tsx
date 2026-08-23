@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TextInput, Alert, Dimensions, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Text, View } from '@/components/Themed';
@@ -15,9 +15,26 @@ export default function LoginScreen() {
   const router = useRouter(); 
   const [celular, setCelular] = useState(''); 
   const [senha, setSenha] = useState(''); 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Começa true para verificar auth
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const { height } = Dimensions.get('window');
+
+  useEffect(() => {
+    verificarLogin();
+  }, []);
+
+  const verificarLogin = async () => {
+    try {
+      const isAuth = await authService.isAuthenticated();
+      if (isAuth) {
+        router.replace('/telas/dashboard');
+      } else {
+        setLoading(false);
+      }
+    } catch (e) {
+      setLoading(false);
+    }
+  };
 
   /**
    * formatarCelular - Aplica máscara (XX) XXXXX-XXXX

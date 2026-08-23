@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator, View as RNView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator, View as RNView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { Text, View } from '../../../components/Themed';
@@ -7,13 +7,8 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import comunidadesService from '../../../services/comunidades';
 import Constants from 'expo-constants';
-
-const TIPOS_COMUNIDADE = [
-  { label: 'Feira', value: 'feira' },
-  { label: 'Mercado', value: 'mercado' },
-  { label: 'Hortifruti', value: 'hortifruti' },
-  { label: 'Associação', value: 'associacao' },
-];
+import { pickImage, uploadImage } from '../../../services/uploadService';
+import api from '../../../services/api';
 
 export default function NovaComunidadeScreen() {
   const router = useRouter();
@@ -34,6 +29,45 @@ export default function NovaComunidadeScreen() {
   const [bairro, setBairro] = useState('');
   const [cidade, setCidade] = useState('');
   const [estado, setEstado] = useState('');
+  const [fetchingCEP, setFetchingCEP] = useState(false);
+  const [tiposComunidade, setTiposComunidade] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function carregarTipos() {
+      try {
+        const res = await api.get('/tipos-comunidade');
+        setTiposComunidade(res.data);
+        if (res.data.length > 0 && !tipo) {
+          setTipo(res.data[0].id); // Select first by default
+        }
+      } catch (error) {
+        console.log('Erro ao carregar tipos de comunidade', error);
+      }
+    }
+    carregarTipos();
+  }, []);
+
+  const buscarCEP = async () => {
+    const cepLimpo = cep.replace(/\D/g, '');
+    if (cepLimpo.length !== 8) return;
+
+    setFetchingCEP(true);
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
+      const data = await response.json();
+
+      if (!data.erro) {
+        setRua(data.logradouro || '');
+        setBairro(data.bairro || '');
+        setCidade(data.localidade || '');
+        setEstado(data.uf || '');
+      }
+    } catch (error) {
+      console.log('Erro ao buscar CEP', error);
+    } finally {
+      setFetchingCEP(false);
+    }
+  };
 
   const handleSalvar = async () => {
     if (!nome || !descricaoCurta || !cep || !rua || !cidade) {
@@ -55,7 +89,7 @@ export default function NovaComunidadeScreen() {
         nome,
         descricao_curta: descricaoCurta,
         descricao_longa: descricaoLonga,
-        tipo,
+        tipo_id: tipo,
         cor_tema: corTema,
         imagem_url: finalImageUrl,
         endereco: {
@@ -70,12 +104,29 @@ export default function NovaComunidadeScreen() {
         }
       });
 
-      Alert.alert('Sucesso', 'Comunidade criada com sucesso!', [
-        { text: 'OK', onPress: () => router.back() }
-      ]);
+      if (Platform.OS === 'web') {
+        window.alert('Comunidade criada com sucesso!');
+        router.replace('/telas/admin/comunidades');
+      } else {
+        Alert.alert('Sucesso', 'Comunidade criada com sucesso!', [
+          { text: 'OK', onPress: () => router.replace('/telas/admin/comunidades') }
+        ]);
+      }
     } catch (error: any) {
-      const msg = error?.response?.data?.detail || 'Erro ao criar comunidade. Verifique os dados.';
-      Alert.alert('Erro', msg);
+      let msg = 'Erro ao criar comunidade. Verifique os dados.';
+      if (error?.response?.data?.detail) {
+        if (typeof error.response.data.detail === 'string') {
+          msg = error.response.data.detail;
+        } else if (Array.isArray(error.response.data.detail)) {
+          msg = error.response.data.detail.map((e: any) => `${e.loc?.join('.')}: ${e.msg}`).join('\n');
+        }
+      }
+      
+      if (Platform.OS === 'web') {
+        window.alert(`Erro:\n${msg}`);
+      } else {
+        Alert.alert('Erro', msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -86,13 +137,13 @@ export default function NovaComunidadeScreen() {
       <StatusBar style="dark" />
       
       <RNView style={styles.topHeader}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.canGoBack() ? router.back() : router.replace('/telas/admin/comunidades')}>
           <Ionicons name="arrow-back" size={26} color="#2E7D32" />
         </TouchableOpacity>
-        <RNView style={styles.logoRow}>
+        <TouchableOpacity style={styles.logoRow} onPress={() => router.replace('/telas/dashboard')}>
           <Image source={require('../../../assets/images/logo.svg')} style={{ width: 35, height: 35 }} contentFit="contain" />
           <Text style={styles.logoText}>uitanda.com</Text>
-        </RNView>
+        </TouchableOpacity>
         <RNView style={{ width: 40 }} />
       </RNView>
 
@@ -130,15 +181,18 @@ export default function NovaComunidadeScreen() {
 
           <Text style={styles.label}>Tipo de Comunidade</Text>
           <RNView style={styles.typeContainer}>
-            {TIPOS_COMUNIDADE.map(t => (
+            {tiposComunidade.map(t => (
               <TouchableOpacity 
-                key={t.value} 
-                style={[styles.typeBtn, tipo === t.value && styles.typeBtnActive]} 
-                onPress={() => setTipo(t.value)}
+                key={t.id} 
+                style={[styles.typeBtn, tipo === t.id && styles.typeBtnActive]} 
+                onPress={() => setTipo(t.id)}
               >
-                <Text style={[styles.typeBtnText, tipo === t.value && styles.typeBtnTextActive]}>{t.label}</Text>
+                <Text style={[styles.typeBtnText, tipo === t.id && styles.typeBtnTextActive]}>{t.nome}</Text>
               </TouchableOpacity>
             ))}
+            {tiposComunidade.length === 0 && (
+              <Text style={{ color: '#888', fontStyle: 'italic' }}>Nenhum tipo cadastrado. Cadastre em Gerenciamento.</Text>
+            )}
           </RNView>
         </RNView>
 
@@ -146,7 +200,10 @@ export default function NovaComunidadeScreen() {
           <Text style={styles.sectionTitle}>Endereço do Ponto</Text>
           
           <Text style={styles.label}>CEP *</Text>
-          <TextInput style={styles.input} placeholder="00000-000" value={cep} onChangeText={setCep} keyboardType="numeric" />
+          <RNView style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TextInput style={[styles.input, { flex: 1 }]} placeholder="00000-000" value={cep} onChangeText={setCep} onBlur={buscarCEP} keyboardType="numeric" maxLength={9} />
+            {fetchingCEP && <ActivityIndicator size="small" color="#2E7D32" style={{ marginLeft: 10 }} />}
+          </RNView>
 
           <RNView style={styles.row}>
             <RNView style={{ flex: 3, marginRight: 10 }}>

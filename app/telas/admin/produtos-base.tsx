@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Alert, View as RNView, TextInput } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
 import { Text, View } from '../../../components/Themed';
 import { StatusBar } from 'expo-status-bar';
@@ -13,15 +13,26 @@ export default function AdminProdutosBaseScreen() {
   const [produtos, setProdutos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadProdutos();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadProdutos();
+    }, [])
+  );
 
   const loadProdutos = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/produtos/');
-      setProdutos(response.data);
+      const [resProd, resCat] = await Promise.all([
+        api.get('/produtos/'),
+        api.get('/categorias')
+      ]);
+      const mapCat = new Map();
+      resCat.data.forEach((c: any) => mapCat.set(c.id, c.nome));
+      const produtosMapeados = resProd.data.map((p: any) => ({
+        ...p,
+        categoriaNome: mapCat.get(p.categoria) || 'Sem Categoria'
+      }));
+      setProdutos(produtosMapeados);
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível carregar o catálogo de produtos.');
     } finally {
@@ -31,13 +42,14 @@ export default function AdminProdutosBaseScreen() {
 
   const getUnidadeText = (unidade: string) => {
     switch (unidade) {
-      case 'KG': return 'Quilo (kg)';
-      case 'UNIDADE': return 'Unidade (un)';
-      case 'MOLHO': return 'Molho';
+      case 'KG': case 'kg': return 'Quilo (kg)';
+      case 'UNIDADE': case 'unidade': return 'Unidade (un)';
+      case 'MOLHO': case 'molho': return 'Molho';
       case 'DUZIA': return 'Dúzia';
-      case 'CAIXA': return 'Caixa';
-      case 'GRAMA': return 'Gramas (g)';
-      case 'LITRO': return 'Litro (L)';
+      case 'CAIXA': case 'caixa': return 'Caixa';
+        case 'pacote': return 'Pacote';
+      case 'GRAMA': case 'grama': return 'Gramas (g)';
+      case 'LITRO': case 'litro': return 'Litro (L)';
       default: return unidade;
     }
   };
@@ -52,13 +64,13 @@ export default function AdminProdutosBaseScreen() {
       />
       <RNView style={styles.cardContent}>
         <Text style={styles.nome}>{item.nome}</Text>
-        <Text style={styles.categoria}>{item.categoria}</Text>
+        <Text style={styles.categoria}>{item.categoriaNome || item.categoria}</Text>
         <RNView style={styles.statusRow}>
           <Ionicons name="pricetag-outline" size={12} color="#888" style={{marginRight: 4}} />
           <Text style={styles.statusText}>Vendido por: {getUnidadeText(item.unidade_medida)}</Text>
         </RNView>
       </RNView>
-      <TouchableOpacity style={styles.editButton}>
+      <TouchableOpacity style={styles.editButton} onPress={() => router.push({ pathname: '/telas/admin/editar-produto-base', params: { id: item.id }})}>
         <Ionicons name="create-outline" size={24} color="#666" />
       </TouchableOpacity>
     </RNView>
@@ -69,14 +81,14 @@ export default function AdminProdutosBaseScreen() {
       <StatusBar style="dark" />
       
       <RNView style={styles.topHeader}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.canGoBack() ? router.back() : router.replace('/telas/dashboard')}>
           <Ionicons name="arrow-back" size={26} color="#2E7D32" />
         </TouchableOpacity>
         
-        <RNView style={styles.logoRow}>
+        <TouchableOpacity style={styles.logoRow} onPress={() => router.replace('/telas/dashboard')}>
           <Image source={require('../../../assets/images/logo.svg')} style={{ width: 35, height: 35 }} contentFit="contain" />
           <Text style={styles.logoText}>uitanda.com</Text>
-        </RNView>
+        </TouchableOpacity>
         
         <RNView style={{ width: 40 }} />
       </RNView>

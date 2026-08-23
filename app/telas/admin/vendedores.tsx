@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Alert, View as RNView } from 'react-native';
-import { useRouter } from 'expo-router';
+import React, { useEffect, useState, useCallback } from 'react';
+import { StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Alert, View as RNView, Platform } from 'react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
 import { Text, View } from '../../../components/Themed';
 import { StatusBar } from 'expo-status-bar';
@@ -13,9 +13,11 @@ export default function AdminVendedoresScreen() {
   const [vendedores, setVendedores] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadVendedores();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadVendedores();
+    }, [])
+  );
 
   const loadVendedores = async () => {
     setLoading(true);
@@ -40,7 +42,10 @@ export default function AdminVendedoresScreen() {
           <Text style={styles.statusText}>VENDEDOR APROVADO</Text>
         </RNView>
       </RNView>
-      <TouchableOpacity style={styles.editButton}>
+      <TouchableOpacity 
+        style={styles.editButton}
+        onPress={() => router.push(`/telas/admin/editar-vendedor?id=${item.id}` as any)}
+      >
         <Ionicons name="create-outline" size={24} color="#666" />
       </TouchableOpacity>
     </RNView>
@@ -51,14 +56,14 @@ export default function AdminVendedoresScreen() {
       <StatusBar style="dark" />
       
       <RNView style={styles.topHeader}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.canGoBack() ? router.back() : router.replace('/telas/dashboard')}>
           <Ionicons name="arrow-back" size={26} color="#2E7D32" />
         </TouchableOpacity>
         
-        <RNView style={styles.logoRow}>
+        <TouchableOpacity style={styles.logoRow} onPress={() => router.replace('/telas/dashboard')}>
           <Image source={require('../../../assets/images/logo.svg')} style={{ width: 35, height: 35 }} contentFit="contain" />
           <Text style={styles.logoText}>uitanda.com</Text>
-        </RNView>
+        </TouchableOpacity>
         
         <RNView style={{ width: 40 }} />
       </RNView>

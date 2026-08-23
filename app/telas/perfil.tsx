@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator, View as RNView } from 'react-native';
+import { StyleSheet, TouchableOpacity, ScrollView, Alert, ActivityIndicator, View as RNView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { Text, View } from '../../components/Themed';
@@ -22,22 +22,51 @@ export default function PerfilScreen() {
   const loadUserProfile = async () => {
     try {
       const data = await authService.getCurrentUser();
+      
+      try {
+        const resAddr = await api.get('/usuarios/me/endereco');
+        if (resAddr.data) data.endereco = resAddr.data;
+      } catch(e) {}
+
+      if (data.tipo && data.tipo.toUpperCase() === 'VENDEDOR') {
+        try {
+          const resVendedores = await api.get('/vendedores/');
+          const vendedorInfo = resVendedores.data.find((v: any) => v.usuario_id === data.id);
+          if (vendedorInfo) {
+             data.vendedor = vendedorInfo;
+             const resComunidades = await api.get('/comunidades/');
+             const comunidadeInfo = resComunidades.data.find((c: any) => c.id === vendedorInfo.comunidade_id);
+             if (comunidadeInfo) data.vendedor.comunidade = comunidadeInfo;
+          }
+        } catch(e) {}
+      }
+      
       setUser(data);
     } catch (error) {
-      // Erro silencioso
+      console.error('Erro ao carregar perfil:', error);
+      await authService.logout();
+      router.replace('/');
     } finally {
       setLoading(false);
     }
   };
 
   const handleLogout = async () => {
-    Alert.alert('Sair', 'Deseja realmente sair da sua conta?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Sair', style: 'destructive', onPress: async () => {
-          await authService.logout();
-          router.replace('/');
-      }}
-    ]);
+    if (Platform.OS === 'web') {
+      const confirm = window.confirm('Deseja realmente sair da sua conta?');
+      if (confirm) {
+        await authService.logout();
+        router.replace('/');
+      }
+    } else {
+      Alert.alert('Sair', 'Deseja realmente sair da sua conta?', [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Sair', style: 'destructive', onPress: async () => {
+            await authService.logout();
+            router.replace('/');
+        }}
+      ]);
+    }
   };
 
   if (loading) {
@@ -54,14 +83,20 @@ export default function PerfilScreen() {
       
       {/* Cabeçalho Superior Padronizado */}
       <RNView style={styles.topHeader}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backButton} onPress={() => {
+          if (router.canGoBack()) {
+            router.canGoBack() ? router.back() : router.replace('/telas/dashboard');
+          } else {
+            router.replace('/');
+          }
+        }}>
           <Ionicons name="arrow-back" size={26} color="#2E7D32" />
         </TouchableOpacity>
         
-        <RNView style={styles.logoRow}>
+        <TouchableOpacity style={styles.logoRow} onPress={() => router.replace('/telas/dashboard')}>
           <Image source={require('../../assets/images/logo.svg')} style={{ width: 35, height: 35 }} contentFit="contain" />
           <Text style={styles.logoText}>uitanda.com</Text>
-        </RNView>
+        </TouchableOpacity>
         
         <RNView style={{ width: 40 }} />
       </RNView>
@@ -97,7 +132,15 @@ export default function PerfilScreen() {
             {user?.imagem_url ? (
               <Image source={{ uri: user.imagem_url }} style={{ width: 86, height: 86, borderRadius: 43 }} />
             ) : (
-              <Ionicons name="person" size={45} color="#2E7D32" />
+              <Text style={{ fontSize: 36, fontWeight: 'bold', color: '#2E7D32' }}>
+                {(() => {
+                  if (!user?.nome) return 'US';
+                  const parts = user.nome.trim().split(/\s+/);
+                  return parts.length >= 2 
+                    ? (parts[0][0] + parts[1][0]).toUpperCase() 
+                    : user.nome.substring(0, 2).toUpperCase();
+                })()}
+              </Text>
             )}
             <RNView style={{position: 'absolute', bottom: -5, right: -5, backgroundColor: '#1976D2', padding: 6, borderRadius: 15, elevation: 3}}>
               <Ionicons name="camera" size={14} color="#FFF" />

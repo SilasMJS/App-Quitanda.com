@@ -1,56 +1,93 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Platform, ScrollView } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { Text, View } from '@/components/Themed';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import Constants from 'expo-constants';
 import authService from '../../services/auth';
 import comunidadesService from '../../services/comunidades';
 import reservasService from '../../services/reservas';
+import suporteService from '../../services/suporte';
 import api from '../../services/api';
+import notificationService from '../../services/notifications';
+import * as Notifications from 'expo-notifications';
 
 export default function DashboardScreen() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [countReservas, setCountReservas] = useState(0);
+  const [countPagamentos, setCountPagamentos] = useState(0);
+  const [countTickets, setCountTickets] = useState(0);
+  const [countAdminTickets, setCountAdminTickets] = useState(0);
 
   const [countUsuarios, setCountUsuarios] = useState(0);
   const [countComunidades, setCountComunidades] = useState(0);
   const [countVendedores, setCountVendedores] = useState(0);
 
   useEffect(() => {
-    async function loadData() {
-      try {
-        const userData = await authService.getCurrentUser();
-        setUser(userData);
-        
-        if (userData?.tipo?.toUpperCase() === 'ADMIN') {
-          // Fetch Admin metrics
-          const [comunidadesRes, usuariosRes, vendedoresRes] = await Promise.all([
-            comunidadesService.listarTodas().catch(() => []),
-            api.get('/usuarios/').catch(() => ({ data: [] })),
-            api.get('/vendedores/').catch(() => ({ data: [] }))
-          ]);
-          setCountComunidades(comunidadesRes.length);
-          setCountUsuarios(usuariosRes.data.length);
-          setCountVendedores(vendedoresRes.data.length);
-        } else {
-          // Fetch Seller metrics
-          const reservas = await reservasService.listarRecebidos().catch(() => []);
-          const pendentes = reservas.filter((r: any) => r.status === 'PENDENTE').length;
-          setCountReservas(pendentes);
-        }
-      } catch (error) {
+    // Ao clicar na notificação, leva o usuário para a tela de reservas
+    const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+      router.push('/telas/reservas');
+    });
+    return () => subscription.remove();
+  }, [router]);
+
+  useFocusEffect(
+    useCallback(() => {
+      async function loadData() {
+        try {
+          const userData = await authService.getCurrentUser();
+          setUser(userData);
+
+          // Tenta registrar o dispositivo para Push Notifications
+          notificationService.registerForPushNotificationsAsync().then((token) => {
+            if (token) {
+              notificationService.salvarTokenNoBackend(token);
+            }
+          });
+          
+          try {
+            const numTickets = await suporteService.getBadgeCount();
+            setCountTickets(numTickets.user_count);
+            setCountAdminTickets(numTickets.admin_count);
+          } catch (e) {
+            console.error("Erro ao carregar tickets", e);
+          }
+
+          if (userData?.tipo?.toUpperCase() === 'ADMIN') {
+            // Fetch Admin metrics
+            const [comunidadesRes, usuariosRes, vendedoresRes] = await Promise.all([
+              comunidadesService.listarTodas().catch(() => []),
+              api.get('/usuarios/').catch(() => ({ data: [] })),
+              api.get('/vendedores/').catch(() => ({ data: [] }))
+            ]);
+            setCountComunidades(comunidadesRes.length);
+            setCountUsuarios(usuariosRes.data.length);
+            setCountVendedores(vendedoresRes.data.length);
+          }
+          
+          // Fetch Seller metrics if they have a store (or if they are Admin testing seller view)
+          if (userData?.tipo?.toUpperCase() === 'ADMIN' || userData?.tipo?.toUpperCase() === 'VENDEDOR') {
+            const reservas = await reservasService.listarRecebidos().catch(() => []);
+            const pendentes = reservas.filter((r: any) => r.status === 'PENDENTE').length;
+            const aprovados = reservas.filter((r: any) => r.status === 'APROVADO').length;
+            setCountReservas(pendentes);
+            setCountPagamentos(aprovados);
+          }
+        } catch (error) {
         console.error('Erro ao carregar dados do dashboard:', error);
+        await authService.logout();
+        router.replace('/');
       } finally {
         setLoading(false);
       }
     }
     loadData();
-  }, []);
+    }, [])
+  );
 
   const handleLogout = async () => {
     await authService.logout();
@@ -58,12 +95,19 @@ export default function DashboardScreen() {
   };
 
   const isAdmin = user?.tipo?.toUpperCase() === 'ADMIN';
+  const hasStore = !!user?.vendedor;
+  const [isAdminView, setIsAdminView] = useState(isAdmin);
+
+  useEffect(() => {
+    setIsAdminView(isAdmin);
+  }, [isAdmin]);
 
   const sellerMenuItems = [
-    { label: 'POSTAGEM', route: '/telas/postagens', badge: null, color: '#40C993' },
-    { label: 'RESERVAS', route: '/telas/reservas', badge: countReservas > 0 ? countReservas : null, color: '#40C993' },
-    { label: 'PRODUTOS', route: '/telas/produtos', badge: null, color: '#40C993' },
-    { label: 'PAGAMENTOS', route: '/telas/pagamentos', badge: null, color: '#40C993' },
+    { label: 'Postagens', route: '/telas/postagens', badge: null, icon: 'megaphone' },
+    { label: 'Reservas', route: '/telas/reservas', badge: countReservas > 0 ? countReservas : null, icon: 'calendar' },
+    { label: 'Produtos', route: '/telas/produtos', badge: null, icon: 'basket' },
+    { label: 'Pagamentos', route: '/telas/pagamentos', badge: countPagamentos > 0 ? countPagamentos : null, icon: 'wallet' },
+    { label: 'Suporte', route: '/telas/suporte', badge: countTickets > 0 ? countTickets : null, icon: 'help-circle' },
   ];
 
   const adminMenuItems = [
@@ -71,6 +115,8 @@ export default function DashboardScreen() {
     { label: 'CATÁLOGO', route: '/telas/admin/produtos-base', icon: 'basket', color: '#0288D1' },
     { label: 'VENDEDORES', route: '/telas/admin/vendedores', icon: 'people', color: '#01579B' },
     { label: 'USUÁRIOS', route: '/telas/admin/usuarios', icon: 'person', color: '#455A64' },
+    { label: 'CATEGORIAS & TIPOS', route: '/telas/admin/categorias', icon: 'list', color: '#00796B' },
+    { label: 'SUPORTE', route: '/telas/admin/suporte', icon: 'headset', color: '#D32F2F', badge: countAdminTickets > 0 ? countAdminTickets : null },
   ];
 
   if (loading) {
@@ -93,11 +139,23 @@ export default function DashboardScreen() {
           onPress={() => router.push('/telas/perfil')}
         >
           <View style={styles.avatarCircleSmall}>
-            <Ionicons name="person" size={18} color="#2E7D32" />
+            {user?.imagem_url ? (
+              <Image source={{ uri: user.imagem_url }} style={{ width: 40, height: 40, borderRadius: 20 }} />
+            ) : (
+              <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#2E7D32' }}>
+                {(() => {
+                  if (!user?.nome) return 'US';
+                  const parts = user.nome.trim().split(/\s+/);
+                  return parts.length >= 2 
+                    ? (parts[0][0] + parts[1][0]).toUpperCase() 
+                    : user.nome.substring(0, 2).toUpperCase();
+                })()}
+              </Text>
+            )}
           </View>
           <View style={{ backgroundColor: 'transparent' }}>
             <Text style={styles.userName}>Olá, {user?.nome || 'Usuário'}</Text>
-            <Text style={styles.welcomeSubtitle}>{isAdmin ? 'Painel de Gestão Global' : 'Toque para ver seu perfil'}</Text>
+            <Text style={styles.welcomeSubtitle}>{isAdminView ? 'Painel de Gestão Global' : 'Toque para ver seu perfil'}</Text>
           </View>
           {isAdmin && (
             <View style={styles.adminBadge}>
@@ -106,7 +164,18 @@ export default function DashboardScreen() {
           )}
         </TouchableOpacity>
 
-        {isAdmin ? (
+        {isAdmin && hasStore && (
+          <TouchableOpacity 
+            style={{ backgroundColor: isAdminView ? '#2E7D32' : '#1976D2', padding: 12, borderRadius: 10, alignItems: 'center', marginBottom: 20 }}
+            onPress={() => setIsAdminView(!isAdminView)}
+          >
+            <Text style={{ color: '#FFF', fontWeight: 'bold' }}>
+              {isAdminView ? 'ALTERAR PARA MINHA QUITANDA' : 'ALTERAR PARA PAINEL ADMIN'}
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {isAdminView ? (
           /* --- DASHBOARD ANALÍTICO PARA ADMIN --- */
           <View style={styles.adminContent}>
             
@@ -146,15 +215,20 @@ export default function DashboardScreen() {
             <Text style={styles.sectionTitle}>GERENCIAMENTO</Text>
             <View style={styles.adminMenuGrid}>
               {adminMenuItems.map((item, index) => (
-                <TouchableOpacity 
-                  key={index}
-                  style={[styles.adminMenuBtn, { borderLeftColor: item.color }]}
-                  onPress={() => router.push(item.route as any)}
-                >
-                  <Ionicons name={item.icon as any} size={24} color={item.color} />
-                  <Text style={styles.adminMenuBtnText}>{item.label}</Text>
-                  <Ionicons name="chevron-forward" size={16} color="#CCC" />
-                </TouchableOpacity>
+                  <TouchableOpacity 
+                    key={index}
+                    style={[styles.adminMenuBtn, { borderLeftColor: item.color }]}
+                    onPress={() => router.push(item.route as any)}
+                  >
+                    <Ionicons name={item.icon as any} size={24} color={item.color} />
+                    <Text style={[styles.adminMenuBtnText, { flex: 1 }]}>{item.label}</Text>
+                    {item.badge && (
+                      <View style={[styles.badge, { backgroundColor: item.color }]}>
+                        <Text style={styles.badgeText}>{item.badge}</Text>
+                      </View>
+                    )}
+                    <Ionicons name="chevron-forward" size={16} color="#CCC" />
+                  </TouchableOpacity>
               ))}
             </View>
 
@@ -201,7 +275,7 @@ export default function DashboardScreen() {
               {sellerMenuItems.map((item, index) => (
                 <TouchableOpacity 
                   key={index}
-                  style={[styles.menuButton, { backgroundColor: item.color }]}
+                  style={styles.menuButton}
                   onPress={() => {
                     if (user?.tipo?.toUpperCase() === 'CLIENTE') {
                       Alert.alert('Ação Bloqueada', 'Você precisa completar seu cadastro de vendedor antes de acessar esta funcionalidade.');
@@ -210,12 +284,17 @@ export default function DashboardScreen() {
                     router.push(item.route as any);
                   }}
                 >
+                  <View style={styles.menuIconContainer}>
+                    <Ionicons name={item.icon as any} size={24} color="#2E7D32" />
+                  </View>
                   <Text style={styles.menuButtonText}>{item.label}</Text>
-                  {item.badge && user?.tipo?.toUpperCase() === 'VENDEDOR' && (
+                  
+                  {item.badge && (
                     <View style={styles.badge}>
                       <Text style={styles.badgeText}>{item.badge}</Text>
                     </View>
                   )}
+                  <Ionicons name="chevron-forward" size={24} color="#FFF" style={{ opacity: 0.7 }} />
                 </TouchableOpacity>
               ))}
             </View>
@@ -226,10 +305,17 @@ export default function DashboardScreen() {
         <TouchableOpacity 
           style={styles.logoutButton}
           onPress={() => {
-            Alert.alert('Sair', 'Deseja realmente sair?', [
-              { text: 'Cancelar', style: 'cancel' },
-              { text: 'Sair', style: 'destructive', onPress: handleLogout }
-            ]);
+            if (Platform.OS === 'web') {
+              const confirm = window.confirm('Deseja realmente sair da sua conta?');
+              if (confirm) {
+                handleLogout();
+              }
+            } else {
+              Alert.alert('Sair', 'Deseja realmente sair?', [
+                { text: 'Cancelar', style: 'cancel' },
+                { text: 'Sair', style: 'destructive', onPress: handleLogout }
+              ]);
+            }
           }}
         >
           <Text style={styles.logoutButtonText}>SAIR DA CONTA</Text>
@@ -315,10 +401,46 @@ const styles = StyleSheet.create({
   logoContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 50 },
   logoText: { fontSize: 32, fontWeight: '900', color: '#2E7D32', marginLeft: -5 },
   menuContainer: { width: '100%', gap: 15 },
-  menuButton: { height: 65, borderRadius: 10, justifyContent: 'center', alignItems: 'center', elevation: 3, position: 'relative' },
-  menuButtonText: { color: '#FFF', fontSize: 22, fontWeight: '900', letterSpacing: 1 },
-  badge: { position: 'absolute', right: 20, width: 28, height: 28, borderRadius: 14, backgroundColor: '#0A4D2E', justifyContent: 'center', alignItems: 'center' },
-  badgeText: { color: '#FFF', fontSize: 12, fontWeight: 'bold' },
+  menuButton: { 
+    height: 75, 
+    borderRadius: 16, 
+    flexDirection: 'row',
+    alignItems: 'center', 
+    paddingHorizontal: 20,
+    backgroundColor: '#40C993', 
+    elevation: 4, 
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  menuIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  menuButtonText: { 
+    color: '#FFF', 
+    fontSize: 20, 
+    fontWeight: '800', 
+    letterSpacing: 0.5,
+    flex: 1
+  },
+  badge: { 
+    backgroundColor: '#FF5252', 
+    minWidth: 26, 
+    height: 26, 
+    borderRadius: 13, 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    marginRight: 10
+  },
+  badgeText: { color: '#FFF', fontSize: 13, fontWeight: 'bold' },
 
   logoutButton: { marginTop: 40, padding: 15, alignItems: 'center' },
   logoutButtonText: { color: '#D32F2F', fontWeight: 'bold', letterSpacing: 1 }
