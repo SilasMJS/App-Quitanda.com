@@ -245,17 +245,10 @@ export default function SignupScreen() {
 
 
       await authService.signup({
-
-
         nome,
-
-
         telefone: celularLimpo,
-
-
-        password: senha
-
-
+        password: senha,
+        email: email ? email : undefined
       });
 
 
@@ -394,13 +387,14 @@ export default function SignupScreen() {
       
 
 
-      Alert.alert('Sucesso!', 'Conta criada com sucesso!', [
-
-
-        { text: 'Ir para o App', onPress: () => router.replace('/telas/dashboard') }
-
-
-      ]);
+            if (Platform.OS === 'web') {
+        alert('Conta criada com sucesso!');
+        router.replace('/telas/dashboard');
+      } else {
+        Alert.alert('Sucesso!', 'Conta criada com sucesso!', [
+          { text: 'Ir para o App', onPress: () => router.replace('/telas/dashboard') }
+        ]);
+      }
 
 
     } catch (error: any) {
@@ -540,6 +534,9 @@ export default function SignupScreen() {
 
 
 
+
+              <Text style={styles.inputLabel}>E-mail (Opcional)</Text>
+              <TextInput style={styles.input} placeholder="seuemail@exemplo.com" keyboardType="email-address" autoCapitalize="none" value={email} onChangeText={setEmail} />
 
               <Text style={styles.inputLabel}>Senha</Text>
 
