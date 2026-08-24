@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TextInput, Alert, Dimensions, ActivityIndicator } from 'react-native';
+import { StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TextInput, Dimensions, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Text, View } from '@/components/Themed';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image'; 
+import { Image } from 'expo-image';
 import Constants from 'expo-constants';
 import authService from '../services/auth';
+import { useToast } from '@/components/ToastContext';
 
 /**
  * LoginScreen - Tela inicial do aplicativo.
@@ -18,6 +19,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(true); // Começa true para verificar auth
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const { height } = Dimensions.get('window');
+  const { showToast } = useToast();
 
   useEffect(() => {
     verificarLogin();
@@ -62,12 +64,12 @@ export default function LoginScreen() {
     const celularLimpo = celular.replace(/\D/g, '');
     
     if (celularLimpo.length < 10) {
-      Alert.alert('Erro', 'Por favor, informe um número de celular válido.');
+      showToast('Por favor, informe um número de celular válido.', 'error');
       return;
     }
 
     if (!senha) {
-      Alert.alert('Erro', 'Por favor, informe sua senha.');
+      showToast('Por favor, informe sua senha.', 'error');
       return;
     }
 
@@ -77,7 +79,7 @@ export default function LoginScreen() {
       router.replace('/telas/dashboard');
     } catch (error: any) {
       const msg = error?.response?.data?.detail || 'Erro ao realizar login. Verifique seus dados.';
-      Alert.alert('Erro de Acesso', msg);
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }

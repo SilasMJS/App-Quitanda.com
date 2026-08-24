@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Alert, View as RNView } from 'react-native';
+import { StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, View as RNView } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
 import { Text, View } from '../../../components/Themed';
@@ -7,9 +7,11 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import comunidadesService, { Comunidade } from '../../../services/comunidades';
 import Constants from 'expo-constants';
+import { useToast } from '../../../components/ToastContext';
 
 export default function AdminComunidadesScreen() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [comunidades, setComunidades] = useState<Comunidade[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -25,7 +27,7 @@ export default function AdminComunidadesScreen() {
       const data = await comunidadesService.listarTodas();
       setComunidades(data);
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível carregar as comunidades.');
+      showToast('Não foi possível carregar as comunidades.', 'error');
     } finally {
       setLoading(false);
     }

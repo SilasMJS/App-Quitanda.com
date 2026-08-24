@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TextInput, Alert, ActivityIndicator, View as RNView } from 'react-native';
+import { StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TextInput, ActivityIndicator, View as RNView } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import { Text, View } from '../../../components/Themed';
@@ -8,15 +8,19 @@ import { Ionicons } from '@expo/vector-icons';
 import api from '../../../services/api';
 import { pickImage, uploadImage } from '../../../services/uploadService';
 import Constants from 'expo-constants';
+import { useToast } from '../../../components/ToastContext';
+import ConfirmModal from '../../../components/ConfirmModal';
 
 export default function AdminNovoProdutoBaseScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
-  
+  const { showToast } = useToast();
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
   const [categoria, setCategoria] = useState('HORTALICA');
-  const [unidadeMedida, setUnidadeMedida] = useState('unidade');
+  const [unidadeMedida, setUnidadeMedida] = useState('UNIDADE');
   const [imagemUrl, setImagemUrl] = useState('');
   const [imagemLocal, setImagemLocal] = useState('');
   
@@ -36,7 +40,7 @@ export default function AdminNovoProdutoBaseScreen() {
         setUnidadeMedida(p.tipo_unidade);
         setImagemUrl(p.imagem_url || '');
       } catch (error) {
-        Alert.alert('Erro', 'Não foi possível carregar o produto.');
+        showToast('Não foi possível carregar o produto.', 'error');
         router.back();
       }
     }
@@ -61,33 +65,33 @@ export default function AdminNovoProdutoBaseScreen() {
   }, []);
 
   const handleDelete = () => {
-    Alert.alert('Remover Produto', 'Tem certeza que deseja apagar este produto do catálogo?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Apagar', style: 'destructive', onPress: async () => {
-          setLoading(true);
-          try {
-            await api.delete(`/produtos/${id}`);
-            if (Platform.OS === 'web') window.alert('Produto apagado!');
-            router.back();
-          } catch(e) {
-            Alert.alert('Erro', 'Não foi possível apagar o produto.');
-            setLoading(false);
-          }
-      }}
-    ]);
+    setDeleteModalVisible(true);
+  };
+
+  const confirmDelete = async () => {
+    setDeleteModalVisible(false);
+    setLoading(true);
+    try {
+      await api.delete(`/produtos/${id}`);
+      showToast('Produto apagado!', 'success');
+      router.back();
+    } catch(e) {
+      showToast('Não foi possível apagar o produto.', 'error');
+      setLoading(false);
+    }
   };
 
   const unidades = [
-    { label: 'Unidade', value: 'unidade' },
-    { label: 'Quilo (kg)', value: 'kg' },
-    { label: 'Pacote', value: 'pacote' },
-    { label: 'Caixa', value: 'caixa' },
-    { label: 'Litro (L)', value: 'litro' },
+    { label: 'Unidade', value: 'UNIDADE' },
+    { label: 'Quilo (kg)', value: 'KG' },
+    { label: 'Pacote', value: 'PACOTE' },
+    { label: 'Caixa', value: 'CAIXA' },
+    { label: 'Litro (L)', value: 'LITRO' },
   ];
 
   const handleSalvar = async () => {
     if (!nome || !descricao) {
-      Alert.alert('Erro', 'Por favor, preencha o Nome e a Descrição do produto.');
+      showToast('Por favor, preencha o Nome e a Descrição do produto.', 'error');
       return;
     }
 
@@ -109,16 +113,10 @@ export default function AdminNovoProdutoBaseScreen() {
         imagem_url: finalImageUrl
       });
 
-      if (Platform.OS === 'web') {
-        window.alert('Produto atualizado com sucesso!');
-        router.back();
-      } else {
-        Alert.alert('Sucesso', 'Produto cadastrado no catálogo global!', [
-          { text: 'OK', onPress: () => router.replace('/telas/admin/produtos-base') }
-        ]);
-      }
+      showToast('Produto atualizado com sucesso!', 'success');
+      router.back();
     } catch (error: any) {
-      Alert.alert('Erro', error.response?.data?.detail?.[0]?.msg || error.response?.data?.detail || 'Falha ao criar o produto.');
+      showToast(error.response?.data?.detail?.[0]?.msg || error.response?.data?.detail || 'Falha ao criar o produto.', 'error');
     } finally {
       setLoading(false);
     }
@@ -222,6 +220,14 @@ export default function AdminNovoProdutoBaseScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      <ConfirmModal
+        visible={deleteModalVisible}
+        title="Remover Produto"
+        message="Tem certeza que deseja apagar este produto do catálogo?"
+        confirmLabel="Apagar"
+        onCancel={() => setDeleteModalVisible(false)}
+        onConfirm={confirmDelete}
+      />
     </View>
   );
 }

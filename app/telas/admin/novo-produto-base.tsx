@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TextInput, Alert, ActivityIndicator, View as RNView } from 'react-native';
+import { StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TextInput, ActivityIndicator, View as RNView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { Text, View } from '../../../components/Themed';
@@ -8,14 +8,16 @@ import { Ionicons } from '@expo/vector-icons';
 import api from '../../../services/api';
 import { pickImage, uploadImage } from '../../../services/uploadService';
 import Constants from 'expo-constants';
+import { useToast } from '../../../components/ToastContext';
 
 export default function AdminNovoProdutoBaseScreen() {
   const router = useRouter();
-  
+  const { showToast } = useToast();
+
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
   const [categoria, setCategoria] = useState('HORTALICA');
-  const [unidadeMedida, setUnidadeMedida] = useState('unidade');
+  const [unidadeMedida, setUnidadeMedida] = useState('UNIDADE');
   const [imagemUrl, setImagemUrl] = useState('');
   const [imagemLocal, setImagemLocal] = useState('');
   
@@ -40,16 +42,16 @@ export default function AdminNovoProdutoBaseScreen() {
   }, []);
 
   const unidades = [
-    { label: 'Unidade', value: 'unidade' },
-    { label: 'Quilo (kg)', value: 'kg' },
-    { label: 'Pacote', value: 'pacote' },
-    { label: 'Caixa', value: 'caixa' },
-    { label: 'Litro (L)', value: 'litro' },
+    { label: 'Unidade', value: 'UNIDADE' },
+    { label: 'Quilo (kg)', value: 'KG' },
+    { label: 'Pacote', value: 'PACOTE' },
+    { label: 'Caixa', value: 'CAIXA' },
+    { label: 'Litro (L)', value: 'LITRO' },
   ];
 
   const handleSalvar = async () => {
     if (!nome || !descricao) {
-      Alert.alert('Erro', 'Por favor, preencha o Nome e a Descrição do produto.');
+      showToast('Por favor, preencha o Nome e a Descrição do produto.', 'error');
       return;
     }
 
@@ -71,16 +73,10 @@ export default function AdminNovoProdutoBaseScreen() {
         imagem_url: finalImageUrl
       });
 
-      if (Platform.OS === 'web') {
-        window.alert('Produto cadastrado no catálogo global com sucesso!');
-        router.replace('/telas/admin/produtos-base');
-      } else {
-        Alert.alert('Sucesso', 'Produto cadastrado no catálogo global!', [
-          { text: 'OK', onPress: () => router.replace('/telas/admin/produtos-base') }
-        ]);
-      }
+      showToast('Produto cadastrado no catálogo global com sucesso!', 'success');
+      router.replace('/telas/admin/produtos-base');
     } catch (error: any) {
-      Alert.alert('Erro', error.response?.data?.detail?.[0]?.msg || error.response?.data?.detail || 'Falha ao criar o produto.');
+      showToast(error.response?.data?.detail?.[0]?.msg || error.response?.data?.detail || 'Falha ao criar o produto.', 'error');
     } finally {
       setLoading(false);
     }

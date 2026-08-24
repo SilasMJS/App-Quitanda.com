@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 
 import {
   ActivityIndicator,
-  Alert,
   Dimensions,
   FlatList,
   KeyboardAvoidingView,
@@ -36,10 +35,14 @@ import { pickImage, uploadImage } from "../services/uploadService";
 
 import api from "../services/api";
 
+import { useToast } from "../components/ToastContext";
+
 const { height } = Dimensions.get("window");
 
 export default function CadastroVendedorScreen() {
   const router = useRouter();
+
+  const { showToast } = useToast();
 
   const [loading, setLoading] = useState(false);
 
@@ -93,7 +96,7 @@ export default function CadastroVendedorScreen() {
 
           // O foco vai para o número automaticamente (opcional)
         } else {
-          Alert.alert("CEP não encontrado", "Verifique o número digitado.");
+          showToast("CEP não encontrado. Verifique o número digitado.", "error");
         }
       } catch (error) {
         console.error("Erro ao buscar CEP:", error);
@@ -178,6 +181,10 @@ export default function CadastroVendedorScreen() {
           } catch (e) {}
         }
       } catch (error) {
+        // Sem isso, um timeout aqui (ex: backend "acordando" no Render) deixava
+        // usuarioId vazio e o formulário parecia funcionar, mas falhava com 403 ao salvar.
+        const msg = 'Não foi possível carregar seus dados. Verifique sua conexão e tente novamente.';
+        showToast(msg, 'error');
       } finally {
         setLoadingComunidades(false);
       }
@@ -207,16 +214,25 @@ export default function CadastroVendedorScreen() {
   };
 
   const handleSalvar = async () => {
+    if (!usuarioId) {
+      showToast(
+        "Não foi possível identificar seu usuário. Volte e entre novamente.",
+        "error",
+      );
+
+      return;
+    }
+
     if (!cep || !rua || !numero || !bairro || !cidade || !estado) {
-      Alert.alert("Erro", "Por favor, preencha todos os campos do endereço.");
+      showToast("Por favor, preencha todos os campos do endereço.", "error");
 
       return;
     }
 
     if (!nomeFantasia || !chavePix || !comunidadeSelecionada) {
-      Alert.alert(
-        "Erro",
+      showToast(
         "Por favor, preencha o nome fantasia, chave pix e selecione uma comunidade.",
+        "error",
       );
 
       return;
@@ -296,9 +312,8 @@ export default function CadastroVendedorScreen() {
           imagem_url: imagemUrl || undefined,
         });
 
-        Alert.alert("Sucesso", "Sua quitanda foi atualizada com sucesso!", [
-          { text: "Voltar", onPress: () => router.back() },
-        ]);
+        showToast("Sua quitanda foi atualizada com sucesso!", "success");
+        router.back();
       } else {
         await vendedoresService.criarPerfilVendedor({
           usuario_id: usuarioId,
@@ -318,24 +333,16 @@ export default function CadastroVendedorScreen() {
           });
         }
 
-        Alert.alert(
-          "Sucesso",
-          "Seu perfil de vendedor foi criado com sucesso!",
-          [
-            {
-              text: "Ir para o Dashboard",
-              onPress: () => router.replace("/telas/dashboard"),
-            },
-          ],
-        );
+        showToast("Seu perfil de vendedor foi criado com sucesso!", "success");
+        router.replace("/telas/dashboard");
       }
     } catch (error: any) {
       console.error(error);
 
-      Alert.alert(
-        "Erro",
+      showToast(
         error.response?.data?.detail ||
           "Houve um erro ao processar sua requisição.",
+        "error",
       );
     } finally {
       setLoading(false);

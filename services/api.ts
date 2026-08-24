@@ -19,7 +19,9 @@ console.log('Conectando à API em:', API_URL);
 
 const api = axios.create({
   baseURL: API_URL,
-  timeout: 15000,
+  // O Render (plano free) hiberna o backend após inatividade; a primeira
+  // requisição depois disso pode levar 30-50s para "acordar" o servidor.
+  timeout: 45000,
   headers: {
     'Content-Type': 'application/json',
   },

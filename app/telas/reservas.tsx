@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, FlatList, TouchableOpacity, Modal, ActivityIndicator, Alert, Platform, Text, View, Linking, ScrollView } from 'react-native';
+import { StyleSheet, FlatList, TouchableOpacity, Modal, ActivityIndicator, Text, View, Linking, ScrollView } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import Constants from 'expo-constants';
+import ConfirmModal from '../../components/ConfirmModal';
+import { useToast } from '../../components/ToastContext';
 import reservasService, { Pedido } from '../../services/reservas';
 import authService from '../../services/auth';
 
@@ -22,6 +24,9 @@ export default function ReservasScreen() {
   const [reservaSelecionada, setReservaSelecionada] = useState<any>(null);
   const [motivoRecusa, setMotivoRecusa] = useState('Item esgotado');
   const [showMotivosOptions, setShowMotivosOptions] = useState(false);
+  const [modalAvisarVisible, setModalAvisarVisible] = useState(false);
+  const [avisarInfo, setAvisarInfo] = useState<{ telefone: string; mensagem: string } | null>(null);
+  const { showToast } = useToast();
 
   const listaMotivos = [
     'Item esgotado no estoque',
@@ -59,7 +64,7 @@ export default function ReservasScreen() {
   const abrirWhatsApp = async (telefone: string, mensagem: string) => {
     const numeroLimpo = limparTelefone(telefone);
     if (!numeroLimpo) {
-      Alert.alert('Aviso', 'O cliente não possui um número de telefone válido.');
+      showToast('O cliente não possui um número de telefone válido.', 'error');
       return;
     }
     const numeroFinal = numeroLimpo.startsWith('55') ? numeroLimpo : `55${numeroLimpo}`;
@@ -69,17 +74,17 @@ export default function ReservasScreen() {
       if (supported) {
         await Linking.openURL(url);
       } else {
-        Alert.alert('Aviso', 'Não foi possível abrir o WhatsApp. O aplicativo está instalado?');
+        showToast('Não foi possível abrir o WhatsApp. O aplicativo está instalado?', 'error');
       }
     } catch (error) {
-      Alert.alert('Erro', 'Ocorreu um erro ao tentar abrir o WhatsApp.');
+      showToast('Ocorreu um erro ao tentar abrir o WhatsApp.', 'error');
     }
   };
 
   const copiarTelefone = async (telefone: string) => {
     if (!telefone) return;
     await Clipboard.setStringAsync(telefone);
-    Alert.alert('Copiado', 'Número de telefone copiado com sucesso!');
+    showToast('Número de telefone copiado com sucesso!', 'success');
   };
 
   const handleConfirmarAcao = async () => {
@@ -87,26 +92,16 @@ export default function ReservasScreen() {
     setProcessando(true);
     try {
       await reservasService.aprovar(reservaSelecionada.id);
-      Alert.alert(
-        'Sucesso', 
-        'Reserva confirmada com sucesso!\n\nEla foi enviada para a aba de Pagamentos.\nDeseja avisar o cliente pelo WhatsApp?',
-        [
-          { text: 'Não', style: 'cancel', onPress: () => {
-              setModalConfirmarVisible(false);
-              carregarReservas();
-          } },
-          { text: 'Sim, Avisar', onPress: () => {
-              setModalConfirmarVisible(false);
-              carregarReservas();
-              abrirWhatsApp(
-                reservaSelecionada.cliente_telefone, 
-                `Olá, ${reservaSelecionada.cliente_nome || 'cliente'}! Aqui é ${vendedorNome} da Quitanda.com. Sua reserva #${reservaSelecionada.id.substring(0,8).toUpperCase()} foi APROVADA e os produtos já estão sendo separados. Valor total: R$ ${parseFloat(reservaSelecionada.valor_total.toString()).toFixed(2).replace('.', ',')}. Pode vir buscar!`
-              );
-          } }
-        ]
-      );
+      setModalConfirmarVisible(false);
+      carregarReservas();
+      showToast('Reserva confirmada com sucesso! Ela foi enviada para a aba de Pagamentos.', 'success');
+      setAvisarInfo({
+        telefone: reservaSelecionada.cliente_telefone,
+        mensagem: `Olá, ${reservaSelecionada.cliente_nome || 'cliente'}! Aqui é ${vendedorNome} da Quitanda.com. Sua reserva #${reservaSelecionada.id.substring(0,8).toUpperCase()} foi APROVADA e os produtos já estão sendo separados. Valor total: R$ ${parseFloat(reservaSelecionada.valor_total.toString()).toFixed(2).replace('.', ',')}. Pode vir buscar!`,
+      });
+      setModalAvisarVisible(true);
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível confirmar a reserva.');
+      showToast('Não foi possível confirmar a reserva.', 'error');
     } finally {
       setProcessando(false);
     }
@@ -117,26 +112,16 @@ export default function ReservasScreen() {
     setProcessando(true);
     try {
       await reservasService.recusar(reservaSelecionada.id, motivoRecusa);
-      Alert.alert(
-        'Sucesso', 
-        'Reserva recusada.\n\nDeseja avisar o cliente pelo WhatsApp?',
-        [
-          { text: 'Não', style: 'cancel', onPress: () => {
-              setModalRecusarVisible(false);
-              carregarReservas();
-          } },
-          { text: 'Sim, Avisar', onPress: () => {
-              setModalRecusarVisible(false);
-              carregarReservas();
-              abrirWhatsApp(
-                reservaSelecionada.cliente_telefone, 
-                `Olá, ${reservaSelecionada.cliente_nome || 'cliente'}. Aqui é ${vendedorNome} da Quitanda.com. Infelizmente sua reserva #${reservaSelecionada.id.substring(0,8).toUpperCase()} foi RECUSADA. Motivo: ${motivoRecusa}.`
-              );
-          } }
-        ]
-      );
+      setModalRecusarVisible(false);
+      carregarReservas();
+      showToast('Reserva recusada.', 'success');
+      setAvisarInfo({
+        telefone: reservaSelecionada.cliente_telefone,
+        mensagem: `Olá, ${reservaSelecionada.cliente_nome || 'cliente'}. Aqui é ${vendedorNome} da Quitanda.com. Infelizmente sua reserva #${reservaSelecionada.id.substring(0,8).toUpperCase()} foi RECUSADA. Motivo: ${motivoRecusa}.`,
+      });
+      setModalAvisarVisible(true);
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível recusar a reserva.');
+      showToast('Não foi possível recusar a reserva.', 'error');
     } finally {
       setProcessando(false);
     }
@@ -363,6 +348,18 @@ export default function ReservasScreen() {
             </View>
           </View>
         </Modal>
+
+        <ConfirmModal
+          visible={modalAvisarVisible}
+          title="Avisar Cliente"
+          message="Deseja avisar o cliente pelo WhatsApp?"
+          confirmLabel="Sim, Avisar"
+          onCancel={() => setModalAvisarVisible(false)}
+          onConfirm={() => {
+            setModalAvisarVisible(false);
+            if (avisarInfo) abrirWhatsApp(avisarInfo.telefone, avisarInfo.mensagem);
+          }}
+        />
       </View>
     </View>
   );

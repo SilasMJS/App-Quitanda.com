@@ -15,11 +15,25 @@ import {
 import ConfirmModal from "../../components/ConfirmModal";
 import { useToast } from "../../components/ToastContext";
 import api from "../../services/api";
+import atividadesService, { Atividade } from "../../services/atividades";
 import authService from "../../services/auth";
 import comunidadesService from "../../services/comunidades";
 import notificationService from "../../services/notifications";
 import reservasService from "../../services/reservas";
 import suporteService from "../../services/suporte";
+
+function getAtividadeIconInfo(tipo: string): { icon: string; color: string } {
+  switch (tipo) {
+    case "VENDEDOR_CRIADO":
+      return { icon: "people", color: "#4CAF50" };
+    case "COMUNIDADE_CRIADA":
+      return { icon: "home", color: "#1976D2" };
+    case "PRODUTO_CRIADO":
+      return { icon: "basket", color: "#2196F3" };
+    default:
+      return { icon: "ellipse", color: "#999" };
+  }
+}
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -35,6 +49,7 @@ export default function DashboardScreen() {
   const [countUsuarios, setCountUsuarios] = useState(0);
   const [countComunidades, setCountComunidades] = useState(0);
   const [countVendedores, setCountVendedores] = useState(0);
+  const [atividades, setAtividades] = useState<Atividade[]>([]);
 
   useEffect(() => {
     const subscription = Notifications.addNotificationResponseReceivedListener(
@@ -71,15 +86,17 @@ export default function DashboardScreen() {
 
           if (userData?.tipo?.toUpperCase() === "ADMIN") {
             // Fetch Admin metrics
-            const [comunidadesRes, usuariosRes, vendedoresRes] =
+            const [comunidadesRes, usuariosRes, vendedoresRes, atividadesRes] =
               await Promise.all([
                 comunidadesService.listarTodas().catch(() => []),
                 api.get("/usuarios/").catch(() => ({ data: [] })),
                 api.get("/vendedores/").catch(() => ({ data: [] })),
+                atividadesService.listarRecentes(),
               ]);
             setCountComunidades(comunidadesRes.length);
             setCountUsuarios(usuariosRes.data.length);
             setCountVendedores(vendedoresRes.data.length);
+            setAtividades(atividadesRes);
           }
 
           // Fetch Seller metrics if they have a store (or if they are Admin testing seller view)
@@ -353,19 +370,25 @@ export default function DashboardScreen() {
 
             <Text style={styles.sectionTitle}>ATIVIDADE RECENTE</Text>
             <View style={styles.recentActivityCard}>
-              <View style={styles.activityItem}>
-                <Ionicons name="people" size={20} color="#4CAF50" />
+              {atividades.length === 0 ? (
                 <Text style={styles.activityText}>
-                  Novo vendedor ingressou na{" "}
-                  <Text style={{ fontWeight: "bold" }}>Feira Centro</Text>
+                  Nenhuma atividade recente.
                 </Text>
-              </View>
-              <View style={styles.activityItem}>
-                <Ionicons name="basket" size={20} color="#2196F3" />
-                <Text style={styles.activityText}>
-                  Cliente João fez sua primeira reserva!
-                </Text>
-              </View>
+              ) : (
+                atividades.map((atividade) => {
+                  const { icon, color } = getAtividadeIconInfo(
+                    atividade.tipo,
+                  );
+                  return (
+                    <View style={styles.activityItem} key={atividade.id}>
+                      <Ionicons name={icon as any} size={20} color={color} />
+                      <Text style={styles.activityText}>
+                        {atividade.mensagem}
+                      </Text>
+                    </View>
+                  );
+                })
+              )}
             </View>
           </View>
         ) : (

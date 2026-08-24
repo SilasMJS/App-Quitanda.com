@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator, View as RNView, Platform, Modal } from 'react-native';
+import { StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, View as RNView, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Text, View } from '../../../components/Themed';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../../services/api';
 import Constants from 'expo-constants';
+import { useToast } from '../../../components/ToastContext';
+import ConfirmModal from '../../../components/ConfirmModal';
 
 export default function CategoriasAdminScreen() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'produtos' | 'comunidades'>('produtos');
 
@@ -21,6 +24,10 @@ export default function CategoriasAdminScreen() {
   const [isEditing, setIsEditing] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [formNome, setFormNome] = useState('');
+
+  // Delete Confirmation State
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; nome: string } | null>(null);
 
   useEffect(() => {
     carregarDados();
@@ -44,9 +51,7 @@ export default function CategoriasAdminScreen() {
 
   const handleSalvar = async () => {
     if (!formNome.trim()) {
-      const msg = 'Por favor, informe o nome.';
-      if (Platform.OS === 'web') window.alert(msg);
-      else Alert.alert('Atenção', msg);
+      showToast('Por favor, informe o nome.', 'error');
       return;
     }
 
@@ -67,8 +72,7 @@ export default function CategoriasAdminScreen() {
       carregarDados();
     } catch (error: any) {
       const msg = error.response?.data?.detail || 'Erro ao salvar item';
-      if (Platform.OS === 'web') window.alert(msg);
-      else Alert.alert('Erro', msg);
+      showToast(msg, 'error');
     }
   };
 
@@ -93,22 +97,19 @@ export default function CategoriasAdminScreen() {
       carregarDados();
     } catch (error: any) {
       const msg = error.response?.data?.detail || 'Erro ao excluir item';
-      if (Platform.OS === 'web') window.alert(msg);
-      else Alert.alert('Erro', msg);
+      showToast(msg, 'error');
     }
   };
 
   const confirmDelete = (id: string, nome: string) => {
-    if (Platform.OS === 'web') {
-      if (window.confirm(`Deseja realmente excluir "${nome}"?`)) {
-        handleDelete(id);
-      }
-    } else {
-      Alert.alert('Excluir', `Deseja realmente excluir "${nome}"?`, [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Excluir', style: 'destructive', onPress: () => handleDelete(id) }
-      ]);
-    }
+    setDeleteTarget({ id, nome });
+    setDeleteModalVisible(true);
+  };
+
+  const executeDelete = () => {
+    if (deleteTarget) handleDelete(deleteTarget.id);
+    setDeleteModalVisible(false);
+    setDeleteTarget(null);
   };
 
   const listaCompleta = activeTab === 'produtos' ? categorias : tiposComunidade;
@@ -213,6 +214,15 @@ export default function CategoriasAdminScreen() {
           </RNView>
         </RNView>
       </Modal>
+
+      <ConfirmModal
+        visible={deleteModalVisible}
+        title="Excluir"
+        message={`Deseja realmente excluir "${deleteTarget?.nome}"?`}
+        confirmLabel="Excluir"
+        onCancel={() => setDeleteModalVisible(false)}
+        onConfirm={executeDelete}
+      />
     </View>
   );
 }

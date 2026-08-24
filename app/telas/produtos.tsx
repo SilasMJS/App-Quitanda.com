@@ -8,7 +8,6 @@ import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Dimensions,
   FlatList,
   Modal,
@@ -18,6 +17,8 @@ import {
   TextInput,
   TouchableOpacity,
 } from "react-native";
+import ConfirmModal from "../../components/ConfirmModal";
+import { useToast } from "../../components/ToastContext";
 import produtosService from "../../services/produtos";
 import storage from "../../services/storage";
 import { uploadImage } from "../../services/uploadService";
@@ -34,6 +35,8 @@ export default function ProdutosScreen() {
 
   const [modalAberto, setModalAberto] = useState(false);
   const [modalSelecaoNome, setModalSelecaoNome] = useState(false);
+  const [modalExcluirVisible, setModalExcluirVisible] = useState(false);
+  const { showToast } = useToast();
 
   // Estados do formulário
   const [editandoId, setEditandoId] = useState<string | null>(null);
@@ -69,7 +72,7 @@ export default function ProdutosScreen() {
   const tirarFoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permissão", "Precisamos de acesso à câmera.");
+      showToast("Precisamos de acesso à câmera.", "info");
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
@@ -85,7 +88,7 @@ export default function ProdutosScreen() {
   const escolherDaGaleria = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
-      Alert.alert("Permissão", "Precisamos de acesso à galeria.");
+      showToast("Precisamos de acesso à galeria.", "info");
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -143,28 +146,22 @@ export default function ProdutosScreen() {
   const confirmarExclusao = () => {
     if (!editandoId) return;
 
-    Alert.alert(
-      "Remover Produto",
-      "Tem certeza que deseja remover este produto da sua vitrine?",
-      [
-        { text: "Cancelar", style: "cancel" },
-        { text: "Remover", style: "destructive", onPress: deletarProduto },
-      ],
-    );
+    setModalExcluirVisible(true);
   };
 
   const deletarProduto = async () => {
     if (!editandoId) return;
 
+    setModalExcluirVisible(false);
     setSalvando(true);
     try {
       await produtosService.deletarProduto(editandoId);
-      Alert.alert("Sucesso", "Produto removido com sucesso.");
+      showToast("Produto removido com sucesso.", "success");
       setModalAberto(false);
       resetForm();
       carregarDados();
     } catch (error) {
-      Alert.alert("Erro", "Não foi possível remover o produto.");
+      showToast("Não foi possível remover o produto.", "error");
     } finally {
       setSalvando(false);
     }
@@ -173,15 +170,13 @@ export default function ProdutosScreen() {
   const salvarProduto = async () => {
     console.log("CHAMOU SALVAR PRODUTO", { produtoSelecionado, novoValor, novoQuantidade, unidadeMedida, editandoId });
     if (!produtoSelecionado || !novoValor || !novoQuantidade) {
-      const msg = "Preencha todos os campos obrigatórios.";
-      if (Platform.OS === 'web') { window.alert(msg); } else { Alert.alert("Erro", msg); }
+      showToast("Preencha todos os campos obrigatórios.", "error");
       return;
     }
 
     const token = await storage.get("access_token");
     if (!token) {
-      const msg = "Você precisa estar logado para cadastrar produtos.";
-      if (Platform.OS === 'web') { window.alert(msg); } else { Alert.alert("Autenticação", msg); }
+      showToast("Você precisa estar logado para cadastrar produtos.", "error");
       return;
     }
 
@@ -199,8 +194,7 @@ export default function ProdutosScreen() {
           unidade_medida: unidadeMedida,
           imagem_url: finalImageUrl,
         });
-        const msg = "Produto atualizado!";
-        if (Platform.OS === 'web') { window.alert(msg); } else { Alert.alert("Sucesso", msg); }
+        showToast("Produto atualizado!", "success");
       } else {
         await produtosService.cadastrarProduto({
           produto_id: produtoSelecionado.id,
@@ -209,8 +203,7 @@ export default function ProdutosScreen() {
           imagem_url: finalImageUrl,
           unidade_medida: unidadeMedida,
         } as any);
-        const msg = "Produto adicionado!";
-        if (Platform.OS === 'web') { window.alert(msg); } else { Alert.alert("Sucesso", msg); }
+        showToast("Produto adicionado!", "success");
       }
 
       setModalAberto(false);
@@ -230,7 +223,7 @@ export default function ProdutosScreen() {
       } else if (error.message) {
         errStr = error.message;
       }
-      if (Platform.OS === 'web') { window.alert(errStr); } else { Alert.alert("Erro", errStr); }
+      showToast(errStr, "error");
     } finally {
       setSalvando(false);
     }
@@ -526,6 +519,15 @@ export default function ProdutosScreen() {
           </View>
         </View>
       </Modal>
+
+      <ConfirmModal
+        visible={modalExcluirVisible}
+        title="Remover Produto"
+        message="Tem certeza que deseja remover este produto da sua vitrine?"
+        confirmLabel="Remover"
+        onCancel={() => setModalExcluirVisible(false)}
+        onConfirm={deletarProduto}
+      />
     </View>
   );
 }

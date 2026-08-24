@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 
-import { StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TextInput, Alert, Dimensions, ActivityIndicator, Modal, FlatList, View as RNView } from 'react-native';
+import { StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TextInput, Dimensions, ActivityIndicator, Modal, FlatList, View as RNView } from 'react-native';
 
 
 import { useRouter } from 'expo-router';
@@ -16,7 +16,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 
 
-import { Image } from 'expo-image'; 
+import { Image } from 'expo-image';
 
 
 import Constants from 'expo-constants';
@@ -29,6 +29,9 @@ import comunidadesService, { Comunidade } from '../services/comunidades';
 
 
 import api from '../services/api';
+
+
+import { useToast } from '../components/ToastContext';
 
 
 
@@ -51,7 +54,7 @@ export default function SignupScreen() {
 
   const [loading, setLoading] = useState(false);
 
-
+  const { showToast } = useToast();
 
 
 
@@ -211,7 +214,7 @@ export default function SignupScreen() {
     if (!nome || celularLimpo.length < 10 || senha.length < 6) {
 
 
-      Alert.alert('Erro', 'Preencha os dados obrigatórios corretamente.');
+      showToast('Preencha os dados obrigatórios corretamente.', 'error');
 
 
       return;
@@ -223,7 +226,7 @@ export default function SignupScreen() {
     if (senha !== confirmarSenha) {
 
 
-      Alert.alert('Erro', 'As senhas não coincidem.');
+      showToast('As senhas não coincidem.', 'error');
 
 
       return;
@@ -264,7 +267,7 @@ export default function SignupScreen() {
       const msg = error?.response?.data?.detail || 'Não foi possível iniciar o cadastro.';
 
 
-      Alert.alert('Erro', msg);
+      showToast(msg, 'error');
 
 
     } finally {
@@ -288,7 +291,7 @@ export default function SignupScreen() {
     if (!cep || !rua || !numero || !bairro || !cidade || !estado) {
 
 
-      Alert.alert('Atenção', 'Por favor, preencha todos os campos do endereço ou clique em "Pular".');
+      showToast('Por favor, preencha todos os campos do endereço ou clique em "Pular".', 'error');
 
 
       return;
@@ -387,20 +390,14 @@ export default function SignupScreen() {
       
 
 
-            if (Platform.OS === 'web') {
-        alert('Conta criada com sucesso!');
-        router.replace('/telas/dashboard');
-      } else {
-        Alert.alert('Sucesso!', 'Conta criada com sucesso!', [
-          { text: 'Ir para o App', onPress: () => router.replace('/telas/dashboard') }
-        ]);
-      }
+      showToast('Conta criada com sucesso!', 'success');
+      router.replace('/telas/dashboard');
 
 
     } catch (error: any) {
 
 
-      Alert.alert('Erro', 'Houve um erro ao salvar o endereço. Você pode tentar novamente pelo Perfil.');
+      showToast('Houve um erro ao salvar o endereço. Você pode tentar novamente pelo Perfil.', 'error');
 
 
       router.replace('/telas/dashboard');

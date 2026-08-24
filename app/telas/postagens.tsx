@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, Dimensions, Platform, ActivityIndicator, Modal } from 'react-native';
+import { StyleSheet, TouchableOpacity, ScrollView, TextInput, Dimensions, Platform, ActivityIndicator, Modal } from 'react-native';
 import { Image } from 'expo-image';
 import { Text, View } from '@/components/Themed';
 import * as ImagePicker from 'expo-image-picker';
@@ -8,6 +8,8 @@ import { Video, ResizeMode } from 'expo-av';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import Constants from 'expo-constants';
+import ConfirmModal from '../../components/ConfirmModal';
+import { useToast } from '../../components/ToastContext';
 import api from '../../services/api';
 import { uploadImage } from '../../services/uploadService';
 
@@ -24,6 +26,8 @@ export default function PostagensScreen() {
   // Estados para Edição
   const [modalAberto, setModalAberto] = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [modalExcluirVisible, setModalExcluirVisible] = useState(false);
+  const { showToast } = useToast();
 
   useEffect(() => {
     carregarPostagens();
@@ -41,7 +45,7 @@ export default function PostagensScreen() {
   const capturarFoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permissão Necessária', 'Precisamos de acesso à câmera.');
+      showToast('Precisamos de acesso à câmera.', 'info');
       return;
     }
     let result = await ImagePicker.launchCameraAsync({
@@ -52,8 +56,7 @@ export default function PostagensScreen() {
     if (!result.canceled && result.assets && result.assets.length > 0) {
       const asset = result.assets[0];
       if (asset.fileSize && asset.fileSize > 20 * 1024 * 1024) {
-        if (Platform.OS === 'web') window.alert('O arquivo é muito grande! Escolha um arquivo de até 20MB.');
-        else Alert.alert('Arquivo muito grande', 'O limite de upload é de 20MB.');
+        showToast('O arquivo é muito grande! Escolha um arquivo de até 20MB.', 'error');
         return;
       }
       setImagem(asset.uri);
@@ -64,7 +67,7 @@ export default function PostagensScreen() {
   const gravarVideo = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permissão Necessária', 'Precisamos de acesso à câmera.');
+      showToast('Precisamos de acesso à câmera.', 'info');
       return;
     }
     let result = await ImagePicker.launchCameraAsync({
@@ -76,8 +79,7 @@ export default function PostagensScreen() {
     if (!result.canceled && result.assets && result.assets.length > 0) {
       const asset = result.assets[0];
       if (asset.fileSize && asset.fileSize > 20 * 1024 * 1024) {
-        if (Platform.OS === 'web') window.alert('O vídeo é muito grande! Tente gravar um vídeo mais curto.');
-        else Alert.alert('Vídeo muito grande', 'O limite de upload é de 20MB.');
+        showToast('O vídeo é muito grande! Tente gravar um vídeo mais curto.', 'error');
         return;
       }
       setImagem(asset.uri);
@@ -88,7 +90,7 @@ export default function PostagensScreen() {
   const selecionarGaleria = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permissão Necessária', 'Precisamos de acesso à galeria.');
+      showToast('Precisamos de acesso à galeria.', 'info');
       return;
     }
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -99,14 +101,13 @@ export default function PostagensScreen() {
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
       const asset = result.assets[0];
-      
+
       // Limite de 20MB no app
       if (asset.fileSize && asset.fileSize > 20 * 1024 * 1024) {
-        if (Platform.OS === 'web') window.alert('O arquivo é muito grande! Escolha um arquivo de até 20MB.');
-        else Alert.alert('Arquivo muito grande', 'O limite de upload é de 20MB.');
+        showToast('O arquivo é muito grande! Escolha um arquivo de até 20MB.', 'error');
         return;
       }
-      
+
       setImagem(asset.uri);
       setTipoMidia(asset.type === 'video' ? 'VIDEO' : 'IMAGE');
     }
@@ -130,21 +131,19 @@ export default function PostagensScreen() {
 
   const confirmarExclusao = () => {
     if (!editandoId) return;
-    Alert.alert('Remover Postagem', 'Deseja excluir esta postagem permanentemente?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Excluir', style: 'destructive', onPress: deletarPostagem }
-    ]);
+    setModalExcluirVisible(true);
   };
 
   const deletarPostagem = async () => {
+    setModalExcluirVisible(false);
     try {
       setLoading(true);
       await api.delete(`/postagens/${editandoId}`);
-      Alert.alert('Sucesso', 'Postagem removida.');
+      showToast('Postagem removida.', 'success');
       setModalAberto(false);
       carregarPostagens();
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível remover a postagem.');
+      showToast('Não foi possível remover a postagem.', 'error');
     } finally {
       setLoading(false);
     }
@@ -152,7 +151,7 @@ export default function PostagensScreen() {
 
   const salvarPostagem = async () => {
     if (!imagem || !legenda) {
-      Alert.alert('Atenção', 'Adicione uma mídia e uma legenda.');
+      showToast('Adicione uma mídia e uma legenda.', 'error');
       return;
     }
 
@@ -170,19 +169,19 @@ export default function PostagensScreen() {
           imagem_url: finalImageUrl,
           tipo_midia: tipoMidia
         });
-        Alert.alert('Sucesso', 'Postagem atualizada!');
+        showToast('Postagem atualizada!', 'success');
       } else {
         await api.post('/postagens/', {
           legenda: legenda,
           imagem_url: finalImageUrl,
           tipo_midia: tipoMidia
         });
-        Alert.alert('Sucesso', 'Sua postagem foi publicada!');
+        showToast('Sua postagem foi publicada!', 'success');
       }
       setModalAberto(false);
       carregarPostagens();
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível salvar a postagem.');
+      showToast('Não foi possível salvar a postagem.', 'error');
     } finally {
       setLoading(false);
     }
@@ -326,6 +325,15 @@ export default function PostagensScreen() {
            </View>
         </View>
       </Modal>
+
+      <ConfirmModal
+        visible={modalExcluirVisible}
+        title="Remover Postagem"
+        message="Deseja excluir esta postagem permanentemente?"
+        confirmLabel="Excluir"
+        onCancel={() => setModalExcluirVisible(false)}
+        onConfirm={deletarPostagem}
+      />
     </View>
   );
 }

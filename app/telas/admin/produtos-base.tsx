@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Alert, View as RNView, TextInput } from 'react-native';
+import { StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, View as RNView, TextInput } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
 import { Text, View } from '../../../components/Themed';
@@ -7,9 +7,11 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../../services/api';
 import Constants from 'expo-constants';
+import { useToast } from '../../../components/ToastContext';
 
 export default function AdminProdutosBaseScreen() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [produtos, setProdutos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -34,7 +36,7 @@ export default function AdminProdutosBaseScreen() {
       }));
       setProdutos(produtosMapeados);
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível carregar o catálogo de produtos.');
+      showToast('Não foi possível carregar o catálogo de produtos.', 'error');
     } finally {
       setLoading(false);
     }

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Alert, View as RNView, Modal, Platform } from 'react-native';
+import { StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, View as RNView, Modal } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
 import { Text, View } from '../../../components/Themed';
@@ -7,9 +7,11 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../../services/api';
 import Constants from 'expo-constants';
+import { useToast } from '../../../components/ToastContext';
 
 export default function AdminUsuariosScreen() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [usuarios, setUsuarios] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -28,8 +30,7 @@ export default function AdminUsuariosScreen() {
       const response = await api.get('/usuarios/');
       setUsuarios(response.data);
     } catch (error) {
-      if (Platform.OS === 'web') window.alert('Erro ao carregar usuários.');
-      else Alert.alert('Erro', 'Não foi possível carregar os usuários.');
+      showToast('Não foi possível carregar os usuários.', 'error');
     } finally {
       setLoading(false);
     }
@@ -44,8 +45,7 @@ export default function AdminUsuariosScreen() {
       loadUsuarios();
     } catch (error: any) {
       const msg = error.response?.data?.detail || 'Erro ao mudar perfil.';
-      if (Platform.OS === 'web') window.alert(msg);
-      else Alert.alert('Erro', msg);
+      showToast(msg, 'error');
     } finally {
       setMudandoTipo(false);
     }

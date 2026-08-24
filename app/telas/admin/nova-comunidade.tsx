@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator, View as RNView, Platform } from 'react-native';
+import { StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, View as RNView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { Text, View } from '../../../components/Themed';
@@ -9,10 +9,12 @@ import comunidadesService from '../../../services/comunidades';
 import Constants from 'expo-constants';
 import { pickImage, uploadImage } from '../../../services/uploadService';
 import api from '../../../services/api';
+import { useToast } from '../../../components/ToastContext';
 
 export default function NovaComunidadeScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const { showToast } = useToast();
 
   // Dados da Comunidade
   const [nome, setNome] = useState('');
@@ -71,7 +73,7 @@ export default function NovaComunidadeScreen() {
 
   const handleSalvar = async () => {
     if (!nome || !descricaoCurta || !cep || !rua || !cidade) {
-      Alert.alert('Erro', 'Por favor, preencha os campos obrigatórios (Nome, Descrição Curta, CEP, Rua e Cidade).');
+      showToast('Por favor, preencha os campos obrigatórios (Nome, Descrição Curta, CEP, Rua e Cidade).', 'error');
       return;
     }
 
@@ -99,19 +101,12 @@ export default function NovaComunidadeScreen() {
           bairro,
           cidade,
           estado: estado.toUpperCase(),
-          latitude: 0,
-          longitude: 0
+          // latitude/longitude ficam de fora: o backend geocodifica o endereço automaticamente.
         }
       });
 
-      if (Platform.OS === 'web') {
-        window.alert('Comunidade criada com sucesso!');
-        router.replace('/telas/admin/comunidades');
-      } else {
-        Alert.alert('Sucesso', 'Comunidade criada com sucesso!', [
-          { text: 'OK', onPress: () => router.replace('/telas/admin/comunidades') }
-        ]);
-      }
+      showToast('Comunidade criada com sucesso!', 'success');
+      router.replace('/telas/admin/comunidades');
     } catch (error: any) {
       let msg = 'Erro ao criar comunidade. Verifique os dados.';
       if (error?.response?.data?.detail) {
@@ -121,12 +116,8 @@ export default function NovaComunidadeScreen() {
           msg = error.response.data.detail.map((e: any) => `${e.loc?.join('.')}: ${e.msg}`).join('\n');
         }
       }
-      
-      if (Platform.OS === 'web') {
-        window.alert(`Erro:\n${msg}`);
-      } else {
-        Alert.alert('Erro', msg);
-      }
+
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }

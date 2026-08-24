@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TextInput, Alert, ActivityIndicator, Modal, FlatList } from 'react-native';
+import { StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TextInput, ActivityIndicator, Modal, FlatList } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import { Text, View } from '../../../components/Themed';
@@ -9,10 +9,12 @@ import api from '../../../services/api';
 import { pickImage, uploadImage } from '../../../services/uploadService';
 import comunidadesService, { Comunidade } from '../../../services/comunidades';
 import Constants from 'expo-constants';
+import { useToast } from '../../../components/ToastContext';
 
 export default function AdminNovoVendedorScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { showToast } = useToast();
   
   const usuario_id = params.usuario_id as string;
   const usuario_nome = params.usuario_nome as string;
@@ -66,7 +68,7 @@ export default function AdminNovoVendedorScreen() {
         setComunidadeId(data[0].id);
       }
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível carregar as comunidades.');
+      showToast('Não foi possível carregar as comunidades.', 'error');
     }
   };
 
@@ -85,10 +87,10 @@ export default function AdminNovoVendedorScreen() {
         setCidade(data.localidade);
         setEstado(data.uf);
       } else {
-        Alert.alert('Erro', 'CEP não encontrado.');
+        showToast('CEP não encontrado.', 'error');
       }
     } catch (error) {
-      Alert.alert('Erro', 'Falha ao buscar o CEP.');
+      showToast('Falha ao buscar o CEP.', 'error');
     } finally {
       setFetchingCEP(false);
     }
@@ -96,11 +98,11 @@ export default function AdminNovoVendedorScreen() {
 
   const handleSalvar = async () => {
     if (!selectedUsuarioId) {
-      Alert.alert('Erro', 'Nenhum usuário foi selecionado.');
+      showToast('Nenhum usuário foi selecionado.', 'error');
       return;
     }
     if (!nomeFantasia || !chavePix || !comunidadeId || !cep || !rua || !numero || !bairro || !cidade || !estado) {
-      Alert.alert('Erro', 'Por favor, preencha todos os campos obrigatórios (incluindo o endereço completo).');
+      showToast('Por favor, preencha todos os campos obrigatórios (incluindo o endereço completo).', 'error');
       return;
     }
 
@@ -121,8 +123,7 @@ export default function AdminNovoVendedorScreen() {
         bairro,
         cidade,
         estado,
-        latitude: 0,
-        longitude: 0
+        // latitude/longitude ficam de fora: o backend geocodifica o endereço automaticamente.
       });
 
       await api.post('/vendedores/', {
@@ -134,24 +135,14 @@ export default function AdminNovoVendedorScreen() {
         imagem_url: finalImageUrl
       });
 
-      if (Platform.OS === 'web') {
-        window.alert('O usuário foi promovido a Vendedor e a vitrine foi criada!');
-        router.canGoBack() ? router.back() : router.replace('/telas/admin/vendedores');
-      } else {
-        Alert.alert('Sucesso', 'O usuário foi promovido a Vendedor e a vitrine foi criada!', [
-          { text: 'OK', onPress: () => router.canGoBack() ? router.back() : router.replace('/telas/admin/vendedores') }
-        ]);
-      }
+      showToast('O usuário foi promovido a Vendedor e a vitrine foi criada!', 'success');
+      router.canGoBack() ? router.back() : router.replace('/telas/admin/vendedores');
     } catch (error: any) {
-      const msg = typeof error.response?.data?.detail === 'string' 
-        ? error.response.data.detail 
+      const msg = typeof error.response?.data?.detail === 'string'
+        ? error.response.data.detail
         : error.response?.data?.detail?.[0]?.msg || 'Falha ao promover o usuário a vendedor.';
-      
-      if (Platform.OS === 'web') {
-        window.alert(`Erro: ${msg}`);
-      } else {
-        Alert.alert('Erro', msg);
-      }
+
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }

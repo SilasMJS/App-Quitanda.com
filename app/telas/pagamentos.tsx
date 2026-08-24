@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, Platform, Text, View, Linking } from 'react-native';
+import { StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Text, View, Linking } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import Constants from 'expo-constants';
+import ConfirmModal from '../../components/ConfirmModal';
+import { useToast } from '../../components/ToastContext';
 import pagamentosService from '../../services/pagamentos';
 import { Pedido } from '../../services/reservas';
 import authService from '../../services/auth';
@@ -17,6 +19,9 @@ export default function PagamentosScreen() {
   const [historico, setHistorico] = useState<Pedido[]>([]);
   const [vendedorNome, setVendedorNome] = useState('Quitanda.com');
   const [loading, setLoading] = useState(true);
+  const [modalAvisarVisible, setModalAvisarVisible] = useState(false);
+  const [avisarInfo, setAvisarInfo] = useState<{ telefone: string; mensagem: string } | null>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     carregarDados();
@@ -49,7 +54,7 @@ export default function PagamentosScreen() {
   const abrirWhatsApp = async (telefone: string, mensagem: string) => {
     const numeroLimpo = limparTelefone(telefone);
     if (!numeroLimpo) {
-      Alert.alert('Aviso', 'O cliente não possui um número de telefone válido.');
+      showToast('O cliente não possui um número de telefone válido.', 'error');
       return;
     }
     const numeroFinal = numeroLimpo.startsWith('55') ? numeroLimpo : `55${numeroLimpo}`;
@@ -59,38 +64,31 @@ export default function PagamentosScreen() {
       if (supported) {
         await Linking.openURL(url);
       } else {
-        Alert.alert('Aviso', 'Não foi possível abrir o WhatsApp.');
+        showToast('Não foi possível abrir o WhatsApp.', 'error');
       }
     } catch (error) {
-      Alert.alert('Erro', 'Ocorreu um erro ao tentar abrir o WhatsApp.');
+      showToast('Ocorreu um erro ao tentar abrir o WhatsApp.', 'error');
     }
   };
 
   const copiarTelefone = async (telefone: string) => {
     if (!telefone) return;
     await Clipboard.setStringAsync(telefone);
-    Alert.alert('Copiado', 'Número de telefone copiado com sucesso!');
+    showToast('Número de telefone copiado com sucesso!', 'success');
   };
 
   const confirmarPagamento = async (pedido: Pedido) => {
     try {
       await pagamentosService.confirmarPagamento(pedido.id);
-      Alert.alert(
-        'Sucesso', 
-        'Reserva finalizada (Paga e Entregue)!\n\nDeseja enviar uma mensagem de agradecimento no WhatsApp?',
-        [
-          { text: 'Não', style: 'cancel', onPress: () => carregarDados() },
-          { text: 'Sim, Agradecer', onPress: () => {
-              carregarDados();
-              abrirWhatsApp(
-                pedido.cliente_telefone || '',
-                `Olá, ${pedido.cliente_nome || 'cliente'}! Aqui é ${vendedorNome} da Quitanda.com. Muito obrigado por comprar conosco e retirar a sua reserva #${pedido.id.substring(0,8).toUpperCase()}! Esperamos que goste dos nossos produtos. Volte sempre!`
-              );
-          } }
-        ]
-      );
+      carregarDados();
+      showToast('Reserva finalizada (Paga e Entregue)!', 'success');
+      setAvisarInfo({
+        telefone: pedido.cliente_telefone || '',
+        mensagem: `Olá, ${pedido.cliente_nome || 'cliente'}! Aqui é ${vendedorNome} da Quitanda.com. Muito obrigado por comprar conosco e retirar a sua reserva #${pedido.id.substring(0,8).toUpperCase()}! Esperamos que goste dos nossos produtos. Volte sempre!`,
+      });
+      setModalAvisarVisible(true);
     } catch (error) {
-      Alert.alert('Erro', 'Falha ao confirmar.');
+      showToast('Falha ao confirmar.', 'error');
     }
   };
 
@@ -190,6 +188,18 @@ export default function PagamentosScreen() {
           </>
         )}
       </View>
+
+      <ConfirmModal
+        visible={modalAvisarVisible}
+        title="Agradecer Cliente"
+        message="Deseja enviar uma mensagem de agradecimento no WhatsApp?"
+        confirmLabel="Sim, Agradecer"
+        onCancel={() => setModalAvisarVisible(false)}
+        onConfirm={() => {
+          setModalAvisarVisible(false);
+          if (avisarInfo) abrirWhatsApp(avisarInfo.telefone, avisarInfo.mensagem);
+        }}
+      />
     </View>
   );
 }

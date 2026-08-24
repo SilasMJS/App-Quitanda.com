@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, ActivityIndicator, View as RNView, Platform } from 'react-native';
+import { StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, View as RNView } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import { Text, View } from '../../../components/Themed';
@@ -8,11 +8,13 @@ import { Ionicons } from '@expo/vector-icons';
 import api from '../../../services/api';
 import { pickImage, uploadImage } from '../../../services/uploadService';
 import Constants from 'expo-constants';
+import { useToast } from '../../../components/ToastContext';
 
 export default function EditarComunidadeScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const comunidadeId = Array.isArray(id) ? id[0] : id;
+  const { showToast } = useToast();
 
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
@@ -91,7 +93,7 @@ export default function EditarComunidadeScreen() {
           setEstado(com.endereco.estado || '');
         }
       } catch (error) {
-        Alert.alert('Erro', 'Não foi possível carregar a comunidade');
+        showToast('Não foi possível carregar a comunidade', 'error');
       } finally {
         setLoading(false);
       }
@@ -101,7 +103,7 @@ export default function EditarComunidadeScreen() {
 
   const handleSalvar = async () => {
     if (!nome || !descricaoCurta || !cep || !rua || !cidade) {
-      Alert.alert('Erro', 'Por favor, preencha os campos obrigatórios (Nome, Descrição Curta, CEP, Rua e Cidade).');
+      showToast('Por favor, preencha os campos obrigatórios (Nome, Descrição Curta, CEP, Rua e Cidade).', 'error');
       return;
     }
 
@@ -121,21 +123,21 @@ export default function EditarComunidadeScreen() {
         imagem_url: finalImageUrl,
       });
 
-      if (Platform.OS === 'web') {
-        window.alert('Comunidade atualizada com sucesso!');
-        router.replace('/telas/admin/comunidades');
-      } else {
-        Alert.alert('Sucesso', 'Comunidade atualizada com sucesso!', [
-          { text: 'OK', onPress: () => router.replace('/telas/admin/comunidades') }
-        ]);
-      }
+      await api.put(`/comunidades/${comunidadeId}/endereco`, {
+        cep: cep.replace(/\D/g, ''),
+        rua,
+        numero,
+        bairro,
+        cidade,
+        estado: estado.toUpperCase(),
+        // latitude/longitude ficam de fora: o backend geocodifica o endereço automaticamente.
+      });
+
+      showToast('Comunidade atualizada com sucesso!', 'success');
+      router.replace('/telas/admin/comunidades');
     } catch (error: any) {
       const msg = typeof error?.response?.data?.detail === 'string' ? error.response.data.detail : 'Erro ao atualizar comunidade.';
-      if (Platform.OS === 'web') {
-        window.alert(`Erro: ${msg}`);
-      } else {
-        Alert.alert('Erro', msg);
-      }
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }

@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, ActivityIndicator, Alert, Platform, Modal } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, ActivityIndicator, Platform, Modal } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import suporteService, { TicketSuporte } from '../../../services/suporte';
+import { useToast } from '../../../components/ToastContext';
 
 export default function AdminSuporteScreen() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [tickets, setTickets] = useState<TicketSuporte[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -36,23 +38,20 @@ export default function AdminSuporteScreen() {
     if (!ticketSelecionado) return;
     
     if (!resposta.trim()) {
-      if (Platform.OS === 'web') window.alert('Digite uma resposta');
-      else Alert.alert('Aviso', 'Digite uma resposta');
+      showToast('Digite uma resposta', 'info');
       return;
     }
-    
+
     try {
       setEnviando(true);
       await suporteService.responderTicket(ticketSelecionado.id, { resposta_admin: resposta, status });
       setTicketSelecionado(null);
       setResposta('');
-      if (Platform.OS === 'web') window.alert('Ticket respondido!');
-      else Alert.alert('Sucesso', 'Ticket respondido!');
+      showToast('Ticket respondido!', 'success');
       carregarTickets();
     } catch (error) {
       console.error('Erro ao responder ticket:', error);
-      if (Platform.OS === 'web') window.alert('Erro ao enviar resposta');
-      else Alert.alert('Erro', 'Erro ao enviar resposta');
+      showToast('Erro ao enviar resposta', 'error');
     } finally {
       setEnviando(false);
     }

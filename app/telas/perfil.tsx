@@ -6,7 +6,6 @@ import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
-    Alert,
     View as RNView,
     ScrollView,
     StyleSheet,
@@ -14,6 +13,7 @@ import {
 } from "react-native";
 import ConfirmModal from "../../components/ConfirmModal";
 import { Text } from "../../components/Themed";
+import { useToast } from "../../components/ToastContext";
 import api from "../../services/api";
 import authService from "../../services/auth";
 import { pickImage, uploadImage } from "../../services/uploadService";
@@ -23,6 +23,7 @@ export default function PerfilScreen() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
+  const { showToast } = useToast();
 
   useEffect(() => {
     loadUserProfile();
@@ -135,7 +136,7 @@ export default function PerfilScreen() {
                   // Atualiza localmente
                   setUser({ ...user, imagem_url: finalUrl });
                 } catch (e) {
-                  Alert.alert("Erro", "Não foi possível atualizar a foto.");
+                  showToast("Não foi possível atualizar a foto.", "error");
                 } finally {
                   setLoading(false);
                 }

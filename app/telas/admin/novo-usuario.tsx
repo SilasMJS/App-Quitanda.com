@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TextInput, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { Text, View } from '../../../components/Themed';
@@ -7,9 +7,11 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../../services/api';
 import Constants from 'expo-constants';
+import { useToast } from '../../../components/ToastContext';
 
 export default function AdminNovoUsuarioScreen() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [nome, setNome] = useState('');
   const [telefone, setTelefone] = useState('');
   const [email, setEmail] = useState('');
@@ -33,7 +35,7 @@ export default function AdminNovoUsuarioScreen() {
 
   const handleSalvar = async () => {
     if (!nome || !telefone || !senha) {
-      Alert.alert('Erro', 'Preencha os campos obrigatórios: Nome, Celular e Senha.');
+      showToast('Preencha os campos obrigatórios: Nome, Celular e Senha.', 'error');
       return;
     }
 
@@ -48,24 +50,14 @@ export default function AdminNovoUsuarioScreen() {
         password: senha
       });
       
-      if (Platform.OS === 'web') {
-        window.alert('Usuário criado com sucesso!');
-        router.replace('/telas/admin/usuarios');
-      } else {
-        Alert.alert('Sucesso', 'Usuário criado com sucesso!', [
-          { text: 'OK', onPress: () => router.replace('/telas/admin/usuarios') }
-        ]);
-      }
+      showToast('Usuário criado com sucesso!', 'success');
+      router.replace('/telas/admin/usuarios');
     } catch (error: any) {
-      const msg = typeof error.response?.data?.detail === 'string' 
-        ? error.response.data.detail 
+      const msg = typeof error.response?.data?.detail === 'string'
+        ? error.response.data.detail
         : error.response?.data?.detail?.[0]?.msg || 'Falha ao criar usuário.';
-      
-      if (Platform.OS === 'web') {
-        window.alert(`Erro: ${msg}`);
-      } else {
-        Alert.alert('Erro', msg);
-      }
+
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }
