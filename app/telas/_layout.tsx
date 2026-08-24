@@ -1,8 +1,8 @@
-import { Stack, useRouter, useSegments } from 'expo-router';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useEffect, useState } from 'react';
-import authService from '../../services/auth';
-import { ActivityIndicator, View } from 'react-native';
+import { Stack, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import authService from "../../services/auth";
 
 export default function TelasLayout() {
   const router = useRouter();
@@ -15,7 +15,7 @@ export default function TelasLayout() {
   const verificarAcesso = async () => {
     const isAuth = await authService.isAuthenticated();
     if (!isAuth) {
-      router.replace('/');
+      router.replace("/");
     } else {
       setIsAuthenticated(true);
     }
@@ -23,7 +23,7 @@ export default function TelasLayout() {
 
   if (isAuthenticated === null) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" color="#2E7D32" />
       </View>
     );
@@ -43,6 +43,7 @@ export default function TelasLayout() {
         <Stack.Screen name="postagens" />
         <Stack.Screen name="pagamentos" />
         <Stack.Screen name="perfil" />
+        <Stack.Screen name="mensagens" />
       </Stack>
     </GestureHandlerRootView>
   );
