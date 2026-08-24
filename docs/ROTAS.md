@@ -16,7 +16,6 @@ O app utiliza o **Expo Router**, onde a estrutura de pastas reflete a navegaçã
   - `postagens.tsx`: Criação de postagens para a vitrine digital.
   - `pagamentos.tsx`: Histórico financeiro.
   - `perfil.tsx`: Informações da conta, status do cadastro e logout.
-  - `mensagens.tsx`: Central de mensagens com respostas e atualizações do suporte.
   - `admin/`: Telas exclusivas para administradores.
     - `comunidades.tsx`: Lista e gestão de comunidades cadastradas.
     - `nova-comunidade.tsx`: Formulário para cadastrar novas comunidades.

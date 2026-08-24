@@ -43,7 +43,6 @@ export default function TelasLayout() {
         <Stack.Screen name="postagens" />
         <Stack.Screen name="pagamentos" />
         <Stack.Screen name="perfil" />
-        <Stack.Screen name="mensagens" />
       </Stack>
     </GestureHandlerRootView>
   );

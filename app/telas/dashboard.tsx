@@ -8,12 +8,12 @@ import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useEffect, useState } from "react";
 import {
     ActivityIndicator,
-    Alert,
-    Platform,
     ScrollView,
     StyleSheet,
-    TouchableOpacity,
+    TouchableOpacity
 } from "react-native";
+import ConfirmModal from "../../components/ConfirmModal";
+import { useToast } from "../../components/ToastContext";
 import api from "../../services/api";
 import authService from "../../services/auth";
 import comunidadesService from "../../services/comunidades";
@@ -29,16 +29,17 @@ export default function DashboardScreen() {
   const [countPagamentos, setCountPagamentos] = useState(0);
   const [countTickets, setCountTickets] = useState(0);
   const [countAdminTickets, setCountAdminTickets] = useState(0);
+  const [logoutModalVisible, setLogoutModalVisible] = useState(false);
+  const { showToast } = useToast();
 
   const [countUsuarios, setCountUsuarios] = useState(0);
   const [countComunidades, setCountComunidades] = useState(0);
   const [countVendedores, setCountVendedores] = useState(0);
 
   useEffect(() => {
-    // Notificações push abrem a central, onde a mensagem pode ser consultada.
     const subscription = Notifications.addNotificationResponseReceivedListener(
       (response) => {
-        router.push("/telas/mensagens");
+        router.push("/telas/reservas");
       },
     );
     return () => subscription.remove();
@@ -125,12 +126,6 @@ export default function DashboardScreen() {
 
   const sellerMenuItems = [
     {
-      label: "Mensagens",
-      route: "/telas/mensagens",
-      badge: countTickets > 0 ? countTickets : null,
-      icon: "chatbubbles",
-    },
-    {
       label: "Postagens",
       route: "/telas/postagens",
       badge: null,
@@ -163,13 +158,6 @@ export default function DashboardScreen() {
   ];
 
   const adminMenuItems = [
-    {
-      label: "MENSAGENS",
-      route: "/telas/mensagens",
-      icon: "chatbubbles",
-      color: "#2E7D32",
-      badge: countAdminTickets > 0 ? countAdminTickets : null,
-    },
     {
       label: "COMUNIDADES",
       route: "/telas/admin/comunidades",
@@ -428,9 +416,9 @@ export default function DashboardScreen() {
                   style={styles.menuButton}
                   onPress={() => {
                     if (user?.tipo?.toUpperCase() === "CLIENTE") {
-                      Alert.alert(
-                        "Ação Bloqueada",
-                        "Você precisa completar seu cadastro de vendedor antes de acessar esta funcionalidade.",
+                      showToast(
+                        "Complete seu cadastro de vendedor para acessar esta funcionalidade.",
+                        "info",
                       );
                       return;
                     }
@@ -466,25 +454,19 @@ export default function DashboardScreen() {
         {/* Botão Sair */}
         <TouchableOpacity
           style={styles.logoutButton}
-          onPress={() => {
-            if (Platform.OS === "web") {
-              const confirm = window.confirm(
-                "Deseja realmente sair da sua conta?",
-              );
-              if (confirm) {
-                handleLogout();
-              }
-            } else {
-              Alert.alert("Sair", "Deseja realmente sair?", [
-                { text: "Cancelar", style: "cancel" },
-                { text: "Sair", style: "destructive", onPress: handleLogout },
-              ]);
-            }
-          }}
+          onPress={() => setLogoutModalVisible(true)}
         >
           <Text style={styles.logoutButtonText}>SAIR DA CONTA</Text>
         </TouchableOpacity>
       </ScrollView>
+      <ConfirmModal
+        visible={logoutModalVisible}
+        title="Sair da conta"
+        message="Deseja realmente sair da sua conta?"
+        confirmLabel="Sair"
+        onCancel={() => setLogoutModalVisible(false)}
+        onConfirm={handleLogout}
+      />
     </View>
   );
 }
