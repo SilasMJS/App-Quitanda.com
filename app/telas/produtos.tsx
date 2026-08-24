@@ -18,12 +18,32 @@ import {
   TouchableOpacity,
 } from "react-native";
 import ConfirmModal from "../../components/ConfirmModal";
+import InitialsAvatar from "../../components/InitialsAvatar";
 import { useToast } from "../../components/ToastContext";
 import produtosService from "../../services/produtos";
 import storage from "../../services/storage";
 import { uploadImage } from "../../services/uploadService";
 
 const { width } = Dimensions.get("window");
+
+function ProductThumbnail({ imagemUrl, nome, style }: { imagemUrl?: string; nome?: string; style: any }) {
+  const [broken, setBroken] = useState(false);
+  if (imagemUrl && !broken) {
+    return (
+      <Image
+        source={{ uri: imagemUrl }}
+        style={style}
+        contentFit="cover"
+        onError={() => setBroken(true)}
+      />
+    );
+  }
+  return (
+    <View style={style}>
+      <InitialsAvatar name={nome || "Produto"} fontSize={20} />
+    </View>
+  );
+}
 
 export default function ProdutosScreen() {
   const router = useRouter();
@@ -321,12 +341,10 @@ export default function ProdutosScreen() {
               onPress={() => abrirEdicao(item)}
             >
               <View style={styles.productImageContainer}>
-                <Image
-                  source={{
-                    uri: item?.imagem_url || "https://via.placeholder.com/150",
-                  }}
+                <ProductThumbnail
+                  imagemUrl={item?.imagem_url}
+                  nome={item?.produto_nome}
                   style={styles.productImage}
-                  contentFit="cover"
                 />
               </View>
               <View style={styles.quantityBadge}>

@@ -13,6 +13,7 @@ import {
     TouchableOpacity
 } from "react-native";
 import ConfirmModal from "../../components/ConfirmModal";
+import InitialsAvatar from "../../components/InitialsAvatar";
 import { useToast } from "../../components/ToastContext";
 import api from "../../services/api";
 import atividadesService, { Atividade } from "../../services/atividades";
@@ -50,6 +51,7 @@ export default function DashboardScreen() {
   const [countComunidades, setCountComunidades] = useState(0);
   const [countVendedores, setCountVendedores] = useState(0);
   const [atividades, setAtividades] = useState<Atividade[]>([]);
+  const [avatarBroken, setAvatarBroken] = useState(false);
 
   useEffect(() => {
     const subscription = Notifications.addNotificationResponseReceivedListener(
@@ -241,24 +243,15 @@ export default function DashboardScreen() {
           style={styles.welcomeSection}
           onPress={() => router.push("/telas/perfil")}
         >
-          <View style={styles.avatarCircleSmall}>
-            {user?.imagem_url ? (
+          <View style={[styles.avatarCircleSmall, { overflow: "hidden" }]}>
+            {user?.imagem_url && !avatarBroken ? (
               <Image
                 source={{ uri: user.imagem_url }}
                 style={{ width: 40, height: 40, borderRadius: 20 }}
+                onError={() => setAvatarBroken(true)}
               />
             ) : (
-              <Text
-                style={{ fontSize: 16, fontWeight: "bold", color: "#2E7D32" }}
-              >
-                {(() => {
-                  if (!user?.nome) return "US";
-                  const parts = user.nome.trim().split(/\s+/);
-                  return parts.length >= 2
-                    ? (parts[0][0] + parts[1][0]).toUpperCase()
-                    : user.nome.substring(0, 2).toUpperCase();
-                })()}
-              </Text>
+              <InitialsAvatar name={user?.nome || "Usuário"} fontSize={16} />
             )}
           </View>
           <View style={{ backgroundColor: "transparent" }}>

@@ -83,9 +83,6 @@ export default function NovaComunidadeScreen() {
       let finalImageUrl = null;
       if (imagemLocal) {
         finalImageUrl = await uploadImage(imagemLocal, 'comunidades');
-      } else {
-        const nameStr = nome.trim().replace(/\s+/g, '+');
-        finalImageUrl = `https://ui-avatars.com/api/?name=${nameStr}&background=1976D2&color=fff&size=256`;
       }
 
       await comunidadesService.criarComunidade({

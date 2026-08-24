@@ -151,12 +151,9 @@ export default function AdminEditarVendedorScreen() {
 
     setLoading(true);
     try {
-      let finalImageUrl = null;
-      if (imagemLocal) {
+      let finalImageUrl = imagemLocal || null;
+      if (imagemLocal && !imagemLocal.startsWith('http')) {
         finalImageUrl = await uploadImage(imagemLocal, 'vendedores');
-      } else {
-        const nameStr = nomeFantasia.trim().replace(/\s+/g, '+');
-        finalImageUrl = `https://ui-avatars.com/api/?name=${nameStr}&background=2E7D32&color=fff&size=256`;
       }
 
       await api.put(`/usuarios/${selectedUsuarioId}/endereco`, {

@@ -12,6 +12,7 @@ import {
     TouchableOpacity
 } from "react-native";
 import ConfirmModal from "../../components/ConfirmModal";
+import InitialsAvatar from "../../components/InitialsAvatar";
 import { Text } from "../../components/Themed";
 import { useToast } from "../../components/ToastContext";
 import api from "../../services/api";
@@ -21,6 +22,7 @@ import { pickImage, uploadImage } from "../../services/uploadService";
 export default function PerfilScreen() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
+  const [avatarBroken, setAvatarBroken] = useState(false);
   const [loading, setLoading] = useState(true);
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
   const { showToast } = useToast();
@@ -135,6 +137,7 @@ export default function PerfilScreen() {
                   });
                   // Atualiza localmente
                   setUser({ ...user, imagem_url: finalUrl });
+                  setAvatarBroken(false);
                 } catch (e) {
                   showToast("Não foi possível atualizar a foto.", "error");
                 } finally {
@@ -143,23 +146,16 @@ export default function PerfilScreen() {
               }
             }}
           >
-            {user?.imagem_url ? (
+            {user?.imagem_url && !avatarBroken ? (
               <Image
                 source={{ uri: user.imagem_url }}
                 style={{ width: 86, height: 86, borderRadius: 43 }}
+                onError={() => setAvatarBroken(true)}
               />
             ) : (
-              <Text
-                style={{ fontSize: 36, fontWeight: "bold", color: "#2E7D32" }}
-              >
-                {(() => {
-                  if (!user?.nome) return "US";
-                  const parts = user.nome.trim().split(/\s+/);
-                  return parts.length >= 2
-                    ? (parts[0][0] + parts[1][0]).toUpperCase()
-                    : user.nome.substring(0, 2).toUpperCase();
-                })()}
-              </Text>
+              <RNView style={{ width: 86, height: 86, borderRadius: 43, overflow: "hidden" }}>
+                <InitialsAvatar name={user?.nome || "Usuário"} fontSize={30} />
+              </RNView>
             )}
             <RNView
               style={{

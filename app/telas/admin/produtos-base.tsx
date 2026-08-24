@@ -8,6 +8,26 @@ import { Ionicons } from '@expo/vector-icons';
 import api from '../../../services/api';
 import Constants from 'expo-constants';
 import { useToast } from '../../../components/ToastContext';
+import InitialsAvatar from '../../../components/InitialsAvatar';
+
+function ProductThumbnail({ imagemUrl, nome, style }: { imagemUrl?: string; nome?: string; style: any }) {
+  const [broken, setBroken] = useState(false);
+  if (imagemUrl && !broken) {
+    return (
+      <Image
+        source={{ uri: imagemUrl }}
+        style={style}
+        contentFit="cover"
+        onError={() => setBroken(true)}
+      />
+    );
+  }
+  return (
+    <RNView style={style}>
+      <InitialsAvatar name={nome || 'Produto'} fontSize={18} />
+    </RNView>
+  );
+}
 
 export default function AdminProdutosBaseScreen() {
   const router = useRouter();
@@ -59,10 +79,10 @@ export default function AdminProdutosBaseScreen() {
   const renderProduto = ({ item }: { item: any }) => (
     <RNView style={styles.card}>
       <RNView style={[styles.colorBar, { backgroundColor: '#0288D1' }]} />
-      <Image 
-        source={{ uri: item.imagem_url || 'https://via.placeholder.com/150?text=Quitanda' }} 
-        style={styles.productImage} 
-        contentFit="cover"
+      <ProductThumbnail
+        imagemUrl={item.imagem_url}
+        nome={item.nome}
+        style={styles.productImage}
       />
       <RNView style={styles.cardContent}>
         <Text style={styles.nome}>{item.nome}</Text>

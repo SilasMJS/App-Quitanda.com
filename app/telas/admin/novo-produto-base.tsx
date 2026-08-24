@@ -61,9 +61,6 @@ export default function AdminNovoProdutoBaseScreen() {
       let finalImageUrl = null;
       if (imagemLocal) {
         finalImageUrl = await uploadImage(imagemLocal, 'produtos');
-      } else {
-        const nameStr = nome.trim().replace(/\s+/g, '+');
-        finalImageUrl = `https://ui-avatars.com/api/?name=${nameStr}&background=0288D1&color=fff&size=256`;
       }
 
       await api.post('/produtos/', {
