@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import api from '../../../services/api';
 import Constants from 'expo-constants';
 import { useToast } from '../../../components/ToastContext';
+import PrimaryButton from '../../../components/PrimaryButton';
 
 export default function AdminNovoUsuarioScreen() {
   const router = useRouter();
@@ -134,17 +135,13 @@ export default function AdminNovoUsuarioScreen() {
               />
             </View>
 
-            <TouchableOpacity 
-              style={[styles.saveButton, loading && { opacity: 0.7 }]} 
+            <PrimaryButton
+              label="CRIAR USUÁRIO"
               onPress={handleSalvar}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#FFF" />
-              ) : (
-                <Text style={styles.saveButtonText}>CRIAR USUÁRIO</Text>
-              )}
-            </TouchableOpacity>
+              loading={loading}
+              color="#2E7D32"
+              style={{ marginTop: 10 }}
+            />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -179,6 +176,4 @@ const styles = StyleSheet.create({
   },
   inputIcon: { marginRight: 10 },
   input: { flex: 1, paddingVertical: 15, fontSize: 16 },
-  saveButton: { backgroundColor: '#2E7D32', padding: 18, borderRadius: 12, alignItems: 'center', marginTop: 10 },
-  saveButtonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' }
 });

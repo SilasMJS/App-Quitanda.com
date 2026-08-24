@@ -32,6 +32,7 @@ import api from '../services/api';
 
 
 import { useToast } from '../components/ToastContext';
+import PrimaryButton from '../components/PrimaryButton';
 
 
 
@@ -553,13 +554,13 @@ export default function SignupScreen() {
 
 
 
-              <TouchableOpacity style={[styles.primaryButton, loading && styles.buttonDisabled]} onPress={handleNextStep} disabled={loading}>
-
-
-                {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.buttonText}>Continuar</Text>}
-
-
-              </TouchableOpacity>
+              <PrimaryButton
+                label="Continuar"
+                onPress={handleNextStep}
+                loading={loading}
+                color="#2E7D32"
+                style={{ marginTop: 30 }}
+              />
 
 
             </RNView>
@@ -655,13 +656,13 @@ export default function SignupScreen() {
 
 
 
-              <TouchableOpacity style={[styles.primaryButton, loading && styles.buttonDisabled]} onPress={handleFinalizeFull} disabled={loading}>
-
-
-                {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.buttonText}>Finalizar Cadastro</Text>}
-
-
-              </TouchableOpacity>
+              <PrimaryButton
+                label="Finalizar Cadastro"
+                onPress={handleFinalizeFull}
+                loading={loading}
+                color="#2E7D32"
+                style={{ marginTop: 30 }}
+              />
 
 
 
@@ -793,13 +794,6 @@ const styles = StyleSheet.create({
   selectText: { color: '#333', fontWeight: '500' },
 
 
-  primaryButton: { backgroundColor: '#2E7D32', padding: 18, borderRadius: 12, alignItems: 'center', marginTop: 30 },
-
-
-  buttonDisabled: { backgroundColor: '#A5D6A7' },
-
-
-  buttonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
 
 
   skipButton: { marginTop: 20, alignItems: 'center', padding: 10 },

@@ -9,6 +9,7 @@ import api from '../../../services/api';
 import { pickImage, uploadImage } from '../../../services/uploadService';
 import Constants from 'expo-constants';
 import { useToast } from '../../../components/ToastContext';
+import PrimaryButton from '../../../components/PrimaryButton';
 
 export default function AdminNovoProdutoBaseScreen() {
   const router = useRouter();
@@ -166,17 +167,13 @@ export default function AdminNovoProdutoBaseScreen() {
               />
             </View>
 
-            <TouchableOpacity 
-              style={[styles.saveButton, loading && { opacity: 0.7 }]} 
+            <PrimaryButton
+              label="CADASTRAR PRODUTO"
               onPress={handleSalvar}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#FFF" />
-              ) : (
-                <Text style={styles.saveButtonText}>CADASTRAR PRODUTO</Text>
-              )}
-            </TouchableOpacity>
+              loading={loading}
+              color="#0288D1"
+              style={{ marginTop: 20 }}
+            />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -225,6 +222,4 @@ const styles = StyleSheet.create({
   radioItemSelected: { backgroundColor: '#E1F5FE', borderColor: '#0288D1' },
   radioItemText: { color: '#666', fontSize: 13, fontWeight: '600' },
   radioItemTextSelected: { color: '#0288D1' },
-  saveButton: { backgroundColor: '#0288D1', padding: 18, borderRadius: 12, alignItems: 'center', marginTop: 20 },
-  saveButtonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' }
 });

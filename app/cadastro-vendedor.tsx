@@ -36,6 +36,7 @@ import { pickImage, uploadImage } from "../services/uploadService";
 import api from "../services/api";
 
 import { useToast } from "../components/ToastContext";
+import PrimaryButton from "../components/PrimaryButton";
 
 const { height } = Dimensions.get("window");
 
@@ -589,22 +590,14 @@ export default function CadastroVendedorScreen() {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity
-            style={[
-              styles.button,
-              (loading || loadingComunidades) && styles.buttonDisabled,
-            ]}
+          <PrimaryButton
+            label={isEditing ? "Salvar Alterações" : "Finalizar Cadastro"}
             onPress={handleSalvar}
-            disabled={loading || loadingComunidades}
-          >
-            {loading ? (
-              <ActivityIndicator color="#FFF" />
-            ) : (
-              <Text style={styles.buttonText}>
-                {isEditing ? "Salvar Alterações" : "Finalizar Cadastro"}
-              </Text>
-            )}
-          </TouchableOpacity>
+            loading={loading}
+            disabled={loadingComunidades}
+            color="#2E7D32"
+            style={{ marginTop: 20, marginBottom: 40 }}
+          />
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -746,19 +739,6 @@ const styles = StyleSheet.create({
   placeholderText: { color: "#999" },
 
   selectText: { color: "#333", fontWeight: "500" },
-
-  button: {
-    backgroundColor: "#2E7D32",
-    padding: 18,
-    borderRadius: 12,
-    alignItems: "center",
-    marginTop: 20,
-    marginBottom: 40,
-  },
-
-  buttonDisabled: { backgroundColor: "#A5D6A7" },
-
-  buttonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
 
   modalOverlay: {
     flex: 1,

@@ -9,6 +9,7 @@ import api from '../../../services/api';
 import { pickImage, uploadImage } from '../../../services/uploadService';
 import Constants from 'expo-constants';
 import { useToast } from '../../../components/ToastContext';
+import PrimaryButton from '../../../components/PrimaryButton';
 
 export default function EditarComunidadeScreen() {
   const router = useRouter();
@@ -242,17 +243,13 @@ export default function EditarComunidadeScreen() {
           </RNView>
         </RNView>
 
-        <TouchableOpacity 
-          style={[styles.saveButton, loading && { opacity: 0.7 }]} 
+        <PrimaryButton
+          label="SALVAR ALTERAÇÕES"
           onPress={handleSalvar}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#FFF" />
-          ) : (
-            <Text style={styles.saveButtonText}>SALVAR ALTERAÇÕES</Text>
-          )}
-        </TouchableOpacity>
+          loading={loading}
+          color="#2E7D32"
+          style={{ marginTop: 20, marginBottom: 50 }}
+        />
       </ScrollView>
     </RNView>
   );
@@ -286,6 +283,4 @@ const styles = StyleSheet.create({
   typeBtnActive: { backgroundColor: '#2E7D32' },
   typeBtnText: { color: '#666', fontWeight: 'bold' },
   typeBtnTextActive: { color: '#FFF' },
-  saveButton: { backgroundColor: '#2E7D32', padding: 18, borderRadius: 12, alignItems: 'center', marginTop: 20, marginBottom: 50 },
-  saveButtonText: { color: '#FFF', fontSize: 18, fontWeight: 'bold' }
 });
