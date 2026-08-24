@@ -72,7 +72,7 @@ export default function AdminEditarVendedorScreen() {
           setComunidadeId(vendedor.comunidade_id);
           
           try {
-             const resAddr = await api.get(`/usuarios/${vendedor.usuario_id}/endereco`);
+             const resAddr = await api.get(`/vendedores/${vendedor.id}/endereco`);
              if (resAddr.data) {
                setCep(resAddr.data.cep || '');
                setEstado(resAddr.data.estado || '');
@@ -156,7 +156,8 @@ export default function AdminEditarVendedorScreen() {
         finalImageUrl = await uploadImage(imagemLocal, 'vendedores');
       }
 
-      await api.put(`/usuarios/${selectedUsuarioId}/endereco`, {
+      // Endereço é do ponto de venda (a quitanda), não do usuário.
+      await api.put(`/vendedores/${id}/endereco`, {
         cep: cep.replace(/\D/g, ''),
         rua,
         numero,

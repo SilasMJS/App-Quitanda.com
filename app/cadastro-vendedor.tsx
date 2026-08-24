@@ -57,6 +57,8 @@ export default function CadastroVendedorScreen() {
 
   const [usuarioId, setUsuarioId] = useState("");
 
+  const [vendedorId, setVendedorId] = useState("");
+
   // Endereço info
 
   const [cep, setCep] = useState("");
@@ -133,25 +135,9 @@ export default function CadastroVendedorScreen() {
 
         setComunidades(listaComunidades);
 
-        // Pre-fill existing data if editing
-
-        try {
-          const resAddr = await api.get("/usuarios/me/endereco");
-
-          if (resAddr.data) {
-            setCep(resAddr.data.cep || "");
-
-            setRua(resAddr.data.rua || "");
-
-            setNumero(resAddr.data.numero || "");
-
-            setBairro(resAddr.data.bairro || "");
-
-            setCidade(resAddr.data.cidade || "");
-
-            setEstado(resAddr.data.estado || "");
-          }
-        } catch (e) {}
+        // O endereço é do ponto de venda (a quitanda), não da pessoa - só
+        // existe depois que o vendedor já foi criado, então só pré-preenche
+        // quando for edição de um vendedor existente (abaixo).
 
         if (user.tipo && user.tipo.toUpperCase() === "VENDEDOR") {
           try {
@@ -163,6 +149,8 @@ export default function CadastroVendedorScreen() {
 
             if (vendedorInfo) {
               setIsEditing(true);
+
+              setVendedorId(vendedorInfo.id);
 
               setNomeFantasia(vendedorInfo.nome_fantasia || "");
 
@@ -178,6 +166,26 @@ export default function CadastroVendedorScreen() {
               );
 
               if (comInfo) setComunidadeSelecionada(comInfo);
+
+              try {
+                const resAddr = await api.get(
+                  `/vendedores/${vendedorInfo.id}/endereco`,
+                );
+
+                if (resAddr.data) {
+                  setCep(resAddr.data.cep || "");
+
+                  setRua(resAddr.data.rua || "");
+
+                  setNumero(resAddr.data.numero || "");
+
+                  setBairro(resAddr.data.bairro || "");
+
+                  setCidade(resAddr.data.cidade || "");
+
+                  setEstado(resAddr.data.estado || "");
+                }
+              } catch (e) {}
             }
           } catch (e) {}
         }
@@ -282,23 +290,9 @@ export default function CadastroVendedorScreen() {
         console.log("Erro ao buscar coordenadas", e);
       }
 
-      // 1. Salvar endereço
-
-      const endereco: Endereco = {
-        cep,
-        rua,
-        numero,
-        bairro,
-        cidade,
-        estado,
-
-        latitude,
-        longitude,
-      };
-
-      await vendedoresService.cadastrarEndereco(endereco);
-
-      // 2. Criar ou Atualizar perfil de vendedor
+      // 1. Criar ou atualizar o perfil de vendedor primeiro - o endereço é
+      // do ponto de venda, então só pode ser salvo depois que o vendedor
+      // já existe.
 
       if (isEditing) {
         await vendedoresService.atualizarPerfilVendedor({
@@ -312,9 +306,6 @@ export default function CadastroVendedorScreen() {
 
           imagem_url: imagemUrl || undefined,
         });
-
-        showToast("Sua quitanda foi atualizada com sucesso!", "success");
-        router.back();
       } else {
         await vendedoresService.criarPerfilVendedor({
           usuario_id: usuarioId,
@@ -333,7 +324,29 @@ export default function CadastroVendedorScreen() {
             imagem_url: imagemUrl,
           });
         }
+      }
 
+      // 2. Agora que o vendedor existe (e o usuário já foi promovido a
+      // VENDEDOR), salva o endereço da quitanda.
+
+      const endereco: Endereco = {
+        cep,
+        rua,
+        numero,
+        bairro,
+        cidade,
+        estado,
+
+        latitude,
+        longitude,
+      };
+
+      await vendedoresService.cadastrarEnderecoMeuVendedor(endereco);
+
+      if (isEditing) {
+        showToast("Sua quitanda foi atualizada com sucesso!", "success");
+        router.back();
+      } else {
         showToast("Seu perfil de vendedor foi criado com sucesso!", "success");
         router.replace("/telas/dashboard");
       }

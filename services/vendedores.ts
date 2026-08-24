@@ -28,12 +28,14 @@ export interface AtualizarVendedor {
 }
 
 const vendedoresService = {
-  cadastrarEndereco: async (endereco: Endereco) => {
+  // O endereço é do ponto de venda (a quitanda), não da pessoa - por isso
+  // fica atrelado ao vendedor autenticado, não ao usuário.
+  cadastrarEnderecoMeuVendedor: async (endereco: Endereco) => {
     try {
-      const response = await api.put('/usuarios/me/endereco', endereco);
+      const response = await api.put('/vendedores/me/endereco', endereco);
       return response.data;
     } catch (error) {
-      console.error('Erro ao cadastrar endereco:', error);
+      console.error('Erro ao cadastrar endereco do vendedor:', error);
       throw error;
     }
   },

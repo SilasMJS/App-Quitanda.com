@@ -114,7 +114,18 @@ export default function AdminNovoVendedorScreen() {
         finalImageUrl = await uploadImage(imagemLocal, 'vendedores');
       }
 
-      await api.put(`/usuarios/${selectedUsuarioId}/endereco`, {
+      const { data: vendedorCriado } = await api.post('/vendedores/', {
+        usuario_id: selectedUsuarioId,
+        nome_fantasia: nomeFantasia,
+        descricao: descricao,
+        chave_pix: chavePix,
+        comunidade_id: comunidadeId,
+        imagem_url: finalImageUrl
+      });
+
+      // Endereço é do ponto de venda (a quitanda), não do usuário -
+      // por isso só pode ser salvo depois que o vendedor já existe.
+      await api.put(`/vendedores/${vendedorCriado.id}/endereco`, {
         cep: cep.replace(/\D/g, ''),
         rua,
         numero,
@@ -122,15 +133,6 @@ export default function AdminNovoVendedorScreen() {
         cidade,
         estado,
         // latitude/longitude ficam de fora: o backend geocodifica o endereço automaticamente.
-      });
-
-      await api.post('/vendedores/', {
-        usuario_id: selectedUsuarioId,
-        nome_fantasia: nomeFantasia,
-        descricao: descricao,
-        chave_pix: chavePix,
-        comunidade_id: comunidadeId,
-        imagem_url: finalImageUrl
       });
 
       showToast('O usuário foi promovido a Vendedor e a vitrine foi criada!', 'success');
