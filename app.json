@@ -42,6 +42,12 @@
       "expo-secure-store",
       "expo-video",
       [
+        "expo-notifications",
+        {
+          "color": "#2E7D32"
+        }
+      ],
+      [
         "expo-build-properties",
         {
           "android": {

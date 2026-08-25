@@ -62,6 +62,30 @@ export default function DashboardScreen() {
     return () => subscription.remove();
   }, [router]);
 
+  // Atualiza o badge de Reservas assim que a notificacao chega, sem depender
+  // de sair e voltar pra tela (useFocusEffect so dispara em troca de tela,
+  // nao quando o app ja esta aberto no dashboard).
+  useEffect(() => {
+    const receivedSubscription = Notifications.addNotificationReceivedListener(
+      async () => {
+        try {
+          const reservas = await reservasService.listarRecebidos().catch(() => []);
+          const pendentes = reservas.filter(
+            (r: any) => r.status === "PENDENTE",
+          ).length;
+          const aprovados = reservas.filter(
+            (r: any) => r.status === "APROVADO",
+          ).length;
+          setCountReservas(pendentes);
+          setCountPagamentos(aprovados);
+        } catch (e) {
+          console.error("Erro ao atualizar contagem de reservas", e);
+        }
+      },
+    );
+    return () => receivedSubscription.remove();
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       async function loadData() {
