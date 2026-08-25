@@ -140,10 +140,14 @@ export default function SignupScreen() {
           setEstado(data.uf);
 
 
+        } else {
+          showToast('CEP não encontrado. Verifique o número digitado.', 'error');
         }
 
 
-      } catch (error) {}
+      } catch (error) {
+        showToast('Não foi possível buscar o CEP agora. Preencha o endereço manualmente.', 'error');
+      }
 
 
     }

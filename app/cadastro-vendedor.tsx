@@ -103,6 +103,7 @@ export default function CadastroVendedorScreen() {
         }
       } catch (error) {
         console.error("Erro ao buscar CEP:", error);
+        showToast("Não foi possível buscar o CEP agora. Preencha o endereço manualmente.", "error");
       }
     }
   };

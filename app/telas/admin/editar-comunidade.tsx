@@ -64,9 +64,11 @@ export default function EditarComunidadeScreen() {
         setBairro(data.bairro || '');
         setCidade(data.localidade || '');
         setEstado(data.uf || '');
+      } else {
+        showToast('CEP não encontrado.', 'error');
       }
     } catch (error) {
-      console.log('Erro ao buscar CEP', error);
+      showToast('Falha ao buscar o CEP.', 'error');
     } finally {
       setFetchingCEP(false);
     }
