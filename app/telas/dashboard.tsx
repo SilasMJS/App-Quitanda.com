@@ -420,49 +420,53 @@ export default function DashboardScreen() {
               <Text style={styles.logoText}>uitanda.com</Text>
             </View>
 
-            <View
-              style={[
-                styles.menuContainer,
-                user?.tipo?.toUpperCase() === "CLIENTE" && { opacity: 0.4 },
-              ]}
-            >
-              {sellerMenuItems.map((item, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.menuButton}
-                  onPress={() => {
-                    if (user?.tipo?.toUpperCase() === "CLIENTE") {
-                      showToast(
-                        "Complete seu cadastro de vendedor para acessar esta funcionalidade.",
-                        "info",
-                      );
-                      return;
-                    }
-                    router.push(item.route as any);
-                  }}
-                >
-                  <View style={styles.menuIconContainer}>
-                    <Ionicons
-                      name={item.icon as any}
-                      size={24}
-                      color="#2E7D32"
-                    />
-                  </View>
-                  <Text style={styles.menuButtonText}>{item.label}</Text>
+            <View style={styles.menuContainer}>
+              {sellerMenuItems.map((item, index) => {
+                // Suporte fica disponivel mesmo pra quem ainda nao completou o
+                // cadastro de vendedor, ja que pode ser justamente por causa
+                // de um problema nesse cadastro que a pessoa precisa de ajuda.
+                const bloqueadoParaCliente =
+                  user?.tipo?.toUpperCase() === "CLIENTE" &&
+                  item.route !== "/telas/suporte";
 
-                  {item.badge && (
-                    <View style={styles.badge}>
-                      <Text style={styles.badgeText}>{item.badge}</Text>
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={[styles.menuButton, bloqueadoParaCliente && { opacity: 0.4 }]}
+                    onPress={() => {
+                      if (bloqueadoParaCliente) {
+                        showToast(
+                          "Complete seu cadastro de vendedor para acessar esta funcionalidade.",
+                          "info",
+                        );
+                        return;
+                      }
+                      router.push(item.route as any);
+                    }}
+                  >
+                    <View style={styles.menuIconContainer}>
+                      <Ionicons
+                        name={item.icon as any}
+                        size={24}
+                        color="#2E7D32"
+                      />
                     </View>
-                  )}
-                  <Ionicons
-                    name="chevron-forward"
-                    size={24}
-                    color="#FFF"
-                    style={{ opacity: 0.7 }}
-                  />
-                </TouchableOpacity>
-              ))}
+                    <Text style={styles.menuButtonText}>{item.label}</Text>
+
+                    {item.badge && (
+                      <View style={styles.badge}>
+                        <Text style={styles.badgeText}>{item.badge}</Text>
+                      </View>
+                    )}
+                    <Ionicons
+                      name="chevron-forward"
+                      size={24}
+                      color="#FFF"
+                      style={{ opacity: 0.7 }}
+                    />
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
         )}
