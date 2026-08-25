@@ -60,14 +60,12 @@ export default function PagamentosScreen() {
     const numeroFinal = numeroLimpo.startsWith('55') ? numeroLimpo : `55${numeroLimpo}`;
     const url = `https://wa.me/${numeroFinal}?text=${encodeURIComponent(mensagem)}`;
     try {
-      const supported = await Linking.canOpenURL(url);
-      if (supported) {
-        await Linking.openURL(url);
-      } else {
-        showToast('Não foi possível abrir o WhatsApp.', 'error');
-      }
+      // canOpenURL costuma retornar falso no Android 11+ mesmo com o
+      // WhatsApp instalado (regra de visibilidade de pacotes) - tenta abrir
+      // direto e so avisa erro se realmente falhar.
+      await Linking.openURL(url);
     } catch (error) {
-      showToast('Ocorreu um erro ao tentar abrir o WhatsApp.', 'error');
+      showToast('Não foi possível abrir o WhatsApp. O aplicativo está instalado?', 'error');
     }
   };
 
