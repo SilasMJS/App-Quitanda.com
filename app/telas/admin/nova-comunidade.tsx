@@ -190,32 +190,32 @@ export default function NovaComunidadeScreen() {
           
           <Text style={styles.label}>CEP *</Text>
           <RNView style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <TextInput style={[styles.input, { flex: 1 }]} placeholder="00000-000" value={cep} onChangeText={setCep} onBlur={buscarCEP} keyboardType="numeric" maxLength={9} />
+            <TextInput style={[styles.input, { flex: 1 }]} placeholder="Ex: 00000-000" placeholderTextColor="#AAB0B8" value={cep} onChangeText={setCep} onBlur={buscarCEP} keyboardType="numeric" maxLength={9} />
             {fetchingCEP && <ActivityIndicator size="small" color="#2E7D32" style={{ marginLeft: 10 }} />}
           </RNView>
 
           <RNView style={styles.row}>
             <RNView style={{ flex: 3, marginRight: 10 }}>
               <Text style={styles.label}>Rua *</Text>
-              <TextInput style={styles.input} placeholder="Av. Principal" value={rua} onChangeText={setRua} />
+              <TextInput style={styles.input} placeholder="Ex: Av. Principal" placeholderTextColor="#AAB0B8" value={rua} onChangeText={setRua} />
             </RNView>
             <RNView style={{ flex: 1 }}>
               <Text style={styles.label}>Nº</Text>
-              <TextInput style={styles.input} placeholder="S/N" value={numero} onChangeText={setNumero} />
+              <TextInput style={styles.input} placeholder="Ex: S/N" placeholderTextColor="#AAB0B8" value={numero} onChangeText={setNumero} />
             </RNView>
           </RNView>
 
           <Text style={styles.label}>Bairro</Text>
-          <TextInput style={styles.input} placeholder="Centro" value={bairro} onChangeText={setBairro} />
+          <TextInput style={styles.input} placeholder="Ex: Centro" placeholderTextColor="#AAB0B8" value={bairro} onChangeText={setBairro} />
 
           <RNView style={styles.row}>
             <RNView style={{ flex: 2, marginRight: 10 }}>
               <Text style={styles.label}>Cidade *</Text>
-              <TextInput style={styles.input} placeholder="Teresina" value={cidade} onChangeText={setCidade} />
+              <TextInput style={styles.input} placeholder="Ex: Teresina" placeholderTextColor="#AAB0B8" value={cidade} onChangeText={setCidade} />
             </RNView>
             <RNView style={{ flex: 1 }}>
               <Text style={styles.label}>UF *</Text>
-              <TextInput style={styles.input} placeholder="PI" value={estado} onChangeText={setEstado} maxLength={2} autoCapitalize="characters" />
+              <TextInput style={styles.input} placeholder="Ex: PI" placeholderTextColor="#AAB0B8" value={estado} onChangeText={setEstado} maxLength={2} autoCapitalize="characters" />
             </RNView>
           </RNView>
         </RNView>

@@ -308,7 +308,8 @@ export default function AdminEditarVendedorScreen() {
                 <View style={styles.inputContainer}>
                   <TextInput
                     style={styles.input}
-                    placeholder="00000-000"
+                    placeholder="Ex: 00000-000"
+                    placeholderTextColor="#AAB0B8"
                     keyboardType="numeric"
                     value={cep}
                     onChangeText={setCep}
@@ -321,7 +322,7 @@ export default function AdminEditarVendedorScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={styles.inputLabel}>Estado (UF) *</Text>
                 <View style={styles.inputContainer}>
-                  <TextInput style={styles.input} placeholder="PI" value={estado} onChangeText={setEstado} maxLength={2} autoCapitalize="characters" />
+                  <TextInput style={styles.input} placeholder="Ex: PI" placeholderTextColor="#AAB0B8" value={estado} onChangeText={setEstado} maxLength={2} autoCapitalize="characters" />
                 </View>
               </View>
             </View>
@@ -330,13 +331,13 @@ export default function AdminEditarVendedorScreen() {
               <View style={{ flex: 2, marginRight: 10 }}>
                 <Text style={styles.inputLabel}>Cidade *</Text>
                 <View style={styles.inputContainer}>
-                  <TextInput style={styles.input} placeholder="Teresina" value={cidade} onChangeText={setCidade} />
+                  <TextInput style={styles.input} placeholder="Ex: Teresina" placeholderTextColor="#AAB0B8" value={cidade} onChangeText={setCidade} />
                 </View>
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.inputLabel}>Bairro *</Text>
                 <View style={styles.inputContainer}>
-                  <TextInput style={styles.input} placeholder="Centro" value={bairro} onChangeText={setBairro} />
+                  <TextInput style={styles.input} placeholder="Ex: Centro" placeholderTextColor="#AAB0B8" value={bairro} onChangeText={setBairro} />
                 </View>
               </View>
             </View>
@@ -345,13 +346,13 @@ export default function AdminEditarVendedorScreen() {
               <View style={{ flex: 3, marginRight: 10 }}>
                 <Text style={styles.inputLabel}>Rua / Logradouro *</Text>
                 <View style={styles.inputContainer}>
-                  <TextInput style={styles.input} placeholder="Rua das Flores" value={rua} onChangeText={setRua} />
+                  <TextInput style={styles.input} placeholder="Ex: Rua das Flores" placeholderTextColor="#AAB0B8" value={rua} onChangeText={setRua} />
                 </View>
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.inputLabel}>Número *</Text>
                 <View style={styles.inputContainer}>
-                  <TextInput style={styles.input} placeholder="123" value={numero} onChangeText={setNumero} keyboardType="numeric" />
+                  <TextInput style={styles.input} placeholder="Ex: 123" placeholderTextColor="#AAB0B8" value={numero} onChangeText={setNumero} keyboardType="numeric" />
                 </View>
               </View>
             </View>

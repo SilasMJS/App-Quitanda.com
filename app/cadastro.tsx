@@ -575,7 +575,7 @@ export default function SignupScreen() {
               <Text style={styles.inputLabel}>CEP</Text>
 
 
-              <TextInput style={styles.input} placeholder="00000-000" keyboardType="numeric" value={cep} onChangeText={buscarCEP} maxLength={8} />
+              <TextInput style={styles.input} placeholder="Ex: 00000-000" placeholderTextColor="#AAB0B8" keyboardType="numeric" value={cep} onChangeText={buscarCEP} maxLength={8} />
 
 
 
@@ -590,7 +590,7 @@ export default function SignupScreen() {
                   <Text style={styles.inputLabel}>Rua</Text>
 
 
-                  <TextInput style={styles.input} placeholder="Rua das Flores" value={rua} onChangeText={setRua} />
+                  <TextInput style={styles.input} placeholder="Ex: Rua das Flores" placeholderTextColor="#AAB0B8" value={rua} onChangeText={setRua} />
 
 
                 </RNView>
@@ -602,7 +602,7 @@ export default function SignupScreen() {
                   <Text style={styles.inputLabel}>Nº</Text>
 
 
-                  <TextInput style={styles.input} placeholder="123" value={numero} onChangeText={setNumero} />
+                  <TextInput style={styles.input} placeholder="Ex: 123" placeholderTextColor="#AAB0B8" value={numero} onChangeText={setNumero} />
 
 
                 </RNView>
@@ -617,7 +617,7 @@ export default function SignupScreen() {
               <Text style={styles.inputLabel}>Bairro</Text>
 
 
-              <TextInput style={styles.input} placeholder="Centro" value={bairro} onChangeText={setBairro} />
+              <TextInput style={styles.input} placeholder="Ex: Centro" placeholderTextColor="#AAB0B8" value={bairro} onChangeText={setBairro} />
 
 
 
@@ -632,7 +632,7 @@ export default function SignupScreen() {
                   <Text style={styles.inputLabel}>Cidade</Text>
 
 
-                  <TextInput style={styles.input} placeholder="Sua Cidade" value={cidade} onChangeText={setCidade} />
+                  <TextInput style={styles.input} placeholder="Ex: Teresina" placeholderTextColor="#AAB0B8" value={cidade} onChangeText={setCidade} />
 
 
                 </RNView>
@@ -644,7 +644,7 @@ export default function SignupScreen() {
                   <Text style={styles.inputLabel}>Estado</Text>
 
 
-                  <TextInput style={styles.input} placeholder="SP" value={estado} onChangeText={setEstado} maxLength={2} autoCapitalize="characters" />
+                  <TextInput style={styles.input} placeholder="Ex: PI" placeholderTextColor="#AAB0B8" value={estado} onChangeText={setEstado} maxLength={2} autoCapitalize="characters" />
 
 
                 </RNView>

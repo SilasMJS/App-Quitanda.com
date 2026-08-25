@@ -484,7 +484,8 @@ export default function CadastroVendedorScreen() {
 
             <TextInput
               style={styles.input}
-              placeholder="00000-000"
+              placeholder="Ex: 00000-000"
+              placeholderTextColor="#AAB0B8"
               value={cep}
               onChangeText={buscarCEP}
               keyboardType="numeric"
@@ -497,7 +498,8 @@ export default function CadastroVendedorScreen() {
 
                 <TextInput
                   style={styles.input}
-                  placeholder="Rua das Flores"
+                  placeholder="Ex: Rua das Flores"
+                  placeholderTextColor="#AAB0B8"
                   value={rua}
                   onChangeText={setRua}
                 />
@@ -508,7 +510,8 @@ export default function CadastroVendedorScreen() {
 
                 <TextInput
                   style={styles.input}
-                  placeholder="123"
+                  placeholder="Ex: 123"
+                  placeholderTextColor="#AAB0B8"
                   value={numero}
                   onChangeText={setNumero}
                 />
@@ -519,7 +522,8 @@ export default function CadastroVendedorScreen() {
 
             <TextInput
               style={styles.input}
-              placeholder="Centro"
+              placeholder="Ex: Centro"
+              placeholderTextColor="#AAB0B8"
               value={bairro}
               onChangeText={setBairro}
             />
@@ -530,7 +534,8 @@ export default function CadastroVendedorScreen() {
 
                 <TextInput
                   style={styles.input}
-                  placeholder="Sua Cidade"
+                  placeholder="Ex: Teresina"
+                  placeholderTextColor="#AAB0B8"
                   value={cidade}
                   onChangeText={setCidade}
                 />
@@ -541,7 +546,8 @@ export default function CadastroVendedorScreen() {
 
                 <TextInput
                   style={styles.input}
-                  placeholder="SP"
+                  placeholder="Ex: PI"
+                  placeholderTextColor="#AAB0B8"
                   value={estado}
                   onChangeText={setEstado}
                   maxLength={2}
