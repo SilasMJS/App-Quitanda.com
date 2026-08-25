@@ -4,13 +4,14 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import suporteService, { TicketSuporte } from '../../../services/suporte';
 import { useToast } from '../../../components/ToastContext';
+import authService from '../../../services/auth';
 
 export default function AdminSuporteScreen() {
   const router = useRouter();
   const { showToast } = useToast();
   const [tickets, setTickets] = useState<TicketSuporte[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   const [ticketSelecionado, setTicketSelecionado] = useState<TicketSuporte | null>(null);
   const [resposta, setResposta] = useState('');
   const [status, setStatus] = useState('respondido');
@@ -30,7 +31,16 @@ export default function AdminSuporteScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      carregarTickets();
+      authService.getCurrentUser().then((user) => {
+        if (user?.tipo?.toUpperCase() !== 'ADMIN') {
+          showToast('Acesso restrito ao administrador.', 'error');
+          router.replace('/telas/dashboard');
+          return;
+        }
+        carregarTickets();
+      }).catch(() => {
+        router.replace('/telas/dashboard');
+      });
     }, [])
   );
 
