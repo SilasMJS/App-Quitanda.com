@@ -453,7 +453,8 @@ export default function ProdutosScreen() {
                   <Text style={styles.inputLabel}>Preço (R$)</Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="0,00"
+                    placeholder="Ex: 5,00"
+                    placeholderTextColor="#AAB0B8"
                     keyboardType="numeric"
                     value={novoValor}
                     onChangeText={handleValorChange}
@@ -465,7 +466,8 @@ export default function ProdutosScreen() {
                   </Text>
                   <TextInput
                     style={styles.input}
-                    placeholder="10"
+                    placeholder="Ex: 10"
+                    placeholderTextColor="#AAB0B8"
                     keyboardType="numeric"
                     value={novoQuantidade}
                     onChangeText={setNovoQuantidade}
