@@ -53,7 +53,9 @@ export const uploadImage = async (uri: string, tipo: 'comunidades' | 'vendedores
       
       if (!res.ok) throw new Error('Upload failed');
       const data = await res.json();
-      return `${baseUrl}${data.url}`;
+      // O backend pode retornar uma URL absoluta (R2) ou um caminho relativo
+      // (fallback em disco local) - so' prefixa com baseUrl nesse segundo caso.
+      return data.url.startsWith('http') ? data.url : `${baseUrl}${data.url}`;
     } else {
       formData.append('file', {
         uri: uri,
@@ -67,7 +69,7 @@ export const uploadImage = async (uri: string, tipo: 'comunidades' | 'vendedores
         },
       });
 
-      return `${baseUrl}${response.data.url}`;
+      return response.data.url.startsWith('http') ? response.data.url : `${baseUrl}${response.data.url}`;
     }
 
   } catch (error) {
