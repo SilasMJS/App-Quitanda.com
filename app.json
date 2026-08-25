@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "App-Quitanda.com",
-    "slug": "App-Quitanda.com",
+    "slug": "quitanda-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -22,13 +22,14 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#E8F8F0",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "usesCleartextTraffic": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "quitanda.com.app"
     },
     "web": {
       "bundler": "metro",
@@ -44,6 +45,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "254add79-aa61-40dc-b835-c0e4a94ebb88"
+      }
+    },
+    "owner": "silas342098s-team"
   }
 }
