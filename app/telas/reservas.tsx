@@ -9,7 +9,7 @@ import Constants from 'expo-constants';
 import ConfirmModal from '../../components/ConfirmModal';
 import { useToast } from '../../components/ToastContext';
 import reservasService, { Pedido } from '../../services/reservas';
-import authService from '../../services/auth';
+import vendedoresService from '../../services/vendedores';
 
 export default function ReservasScreen() {
   const router = useRouter();
@@ -38,8 +38,8 @@ export default function ReservasScreen() {
 
   useEffect(() => {
     carregarReservas();
-    authService.getCurrentUser().then(u => {
-      if (u && u.nome) setVendedorNome(u.nome);
+    vendedoresService.obterMeuPerfil().then(v => {
+      if (v && v.nome_fantasia) setVendedorNome(v.nome_fantasia);
     }).catch(() => {});
   }, []);
 

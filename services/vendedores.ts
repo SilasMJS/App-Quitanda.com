@@ -68,6 +68,14 @@ const vendedoresService = {
       console.error('Erro ao listar vendedores:', error);
       return [];
     }
+  },
+
+  // Perfil da quitanda do vendedor autenticado (inclui nome_fantasia, usado
+  // para identificar o vendedor em mensagens ao cliente, ao inves do nome
+  // da conta do usuario).
+  obterMeuPerfil: async () => {
+    const response = await api.get('/vendedores/me/produtos');
+    return response.data;
   }
 };
 
