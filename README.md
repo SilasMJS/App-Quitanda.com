@@ -1,4 +1,4 @@
-﻿# Quitanda.com - App do Vendedor
+# Quitanda.com - App do Vendedor
 
 ![Expo](https://img.shields.io/badge/Expo-54.0.34-000020?style=for-the-badge&logo=expo&logoColor=white)
 ![React Native](https://img.shields.io/badge/React_Native-0.81.5-61DAFB?style=for-the-badge&logo=react&logoColor=black)
@@ -13,7 +13,8 @@ O **Quitanda.com** é um aplicativo mobile focado na gestão de vitrines digitai
 - [Funcionalidades Principais](#funcionalidades-principais)
 - [Tecnologias Utilizadas](#tecnologias-utilizadas)
 - [Como Inicializar o Projeto](#como-inicializar-o-projeto)
-- [Estrutura do Projeto](#estrutura-do-projeto)
+- [Build de Produção (EAS)](#️-build-de-produção-eas)
+- [Estrutura do Projeto](#estrutura-do-projeto-e-documentação)
 
 ---
 
@@ -52,27 +53,58 @@ Este App não trabalha de forma isolada. Ele faz parte de um ecossistema complet
 - [Node.js](https://nodejs.org/) (versão 20 ou superior recomendada)
 - [Expo Go](https://expo.dev/expo-go) instalado no seu smartphone, ou um emulador configurado (Android/iOS).
 
+> **Atenção:** desde a SDK 53 do Expo, o app Expo Go **não suporta mais notificações push remotas no Android**. Para testar o fluxo completo de notificações é necessário instalar um build real (veja a seção [Build de Produção](#️-build-de-produção-eas) abaixo) — as demais funcionalidades funcionam normalmente no Expo Go.
+
 ### Instalação e Execução
 
 1. Acesse a pasta do projeto:
-   `ash
+   ```bash
    cd App-Quitanda.com
-   `
+   ```
 2. Instale todas as dependências:
-   `ash
+   ```bash
    npm install
-   `
-3. Configure a URL da API (caso necessário) no código ou variável de ambiente apontando para o seu **Backend local** ou de produção.
+   ```
+3. Configure as variáveis de ambiente baseando-se no arquivo de exemplo:
+   ```bash
+   cp .env.example .env
+   ```
+   > Se for testar num celular físico com Expo Go, use o IP interno da sua máquina onde o backend está rodando (ex: `http://192.168.1.100:8000`) — `localhost` não funciona nesse caso, pois aponta para o próprio celular.
 
 4. Inicie o servidor do Expo:
-   `ash
+   ```bash
    npx expo start
-   `
+   ```
 
 5. Durante a execução, o terminal exibirá opções interativas e um **QR Code**:
-   -  para abrir no emulador Android
-   - i para abrir no simulador iOS (apenas macOS)
+   - `a` para abrir no emulador Android
+   - `i` para abrir no simulador iOS (apenas macOS)
    - Escaneie o **QR Code** com a câmera (iOS) ou app **Expo Go** (Android) para rodar nativamente no seu celular físico conectado na mesma rede Wi-Fi.
+
+---
+
+## ☁️ Build de Produção (EAS)
+
+O app é compilado em um APK instalável através do [EAS Build](https://docs.expo.dev/build/introduction/) da Expo. Ele não é publicado nas lojas (Google Play/App Store) — a distribuição é interna, direto pelo arquivo `.apk`.
+
+### Variável de ambiente
+- `EXPO_PUBLIC_API_URL`: URL do backend que o app vai consumir. Já vem configurada em `.env.example` apontando para a API de produção (`https://quitanda-api.onrender.com`).
+
+### Gerando um novo build
+
+```bash
+npx eas-cli build -p android --profile preview
+```
+
+O perfil `preview` (definido em `eas.json`) gera um APK de distribuição interna, pronto para instalar direto no celular assim que o build terminar (link de download aparece no terminal e no [painel do EAS](https://expo.dev)).
+
+### Notificações Push (Firebase/FCM) — pendente
+
+Notificações push no Android exigem um projeto Firebase configurado (`google-services.json` incluído no projeto + credenciais de conta de serviço FCM enviadas ao EAS via `eas credentials`). **Essa configuração ainda não foi feita neste projeto** — sem ela, o app funciona normalmente em todos os outros aspectos, mas o token de push nunca é gerado no dispositivo e as notificações não chegam na bandeja do celular. O badge de reservas dentro do app continua funcionando normalmente ao abrir a tela.
+
+### ✅ Testado em produção
+
+Múltiplos builds foram gerados via EAS ao longo desta fase de desenvolvimento (perfil `preview`, distribuição interna, SDK 54) e testados em dispositivo físico Android: o APK instala e roda corretamente, consumindo a API de produção no Render, com os fluxos de login, cadastro, gestão de produtos, reservas e pagamentos validados. A configuração de Firebase/FCM para notificações push (item acima) ainda está pendente.
 
 ---
 
@@ -88,7 +120,7 @@ Para mais informações sobre o funcionamento interno e arquitetura adotada, con
 
 *(Opcional) Credenciais de Teste Sugeridas:*
 - **Celular**: 11999999999
-- **Senha**: dmin123
+- **Senha**: admin123
 
 ---
 *Quitanda.com - Conectando o campo à tecnologia.*
